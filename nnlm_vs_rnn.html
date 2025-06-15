@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>NNLM vs RNN 架构对比</title>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+            background: #181f2a;
+            margin: 0;
+            padding: 0;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #eaf6ff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            background: #232b3a;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px #0006;
+            padding: 36px;
+        }
+        .model-container {
+            margin: 30px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border-radius: 16px;
+            box-shadow: 0 2px 12px #1de9b633;
+            border: 2px solid #3de0ff44;
+        }
+        .model-title {
+            text-align: center;
+            color: #7ee7ff;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+        .architecture {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 32px;
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(45, 60, 84, 0.5);
+            border-radius: 12px;
+        }
+        .layer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+        .layer-title {
+            color: #7ee7ff;
+            font-size: 1.1em;
+            text-align: center;
+        }
+        .node {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border: 2px solid #3de0ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #eaf6ff;
+            font-size: 1.2em;
+            position: relative;
+        }
+        .node.highlight {
+            background: linear-gradient(135deg, #1de9b6 0%, #2979ff 100%);
+            border-color: #1de9b6;
+        }
+        .arrow {
+            color: #3de0ff;
+            font-size: 2em;
+        }
+        .explanation {
+            margin: 10px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border-radius: 8px;
+            color: #7ee7ff;
+            line-height: 1.6;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .comparison-table td, .comparison-table th {
+            border: 2px solid #3de0ff;
+            padding: 12px;
+            text-align: left;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            color: #eaf6ff;
+        }
+        .comparison-table th {
+            background: linear-gradient(135deg, #1de9b6 0%, #2979ff 100%);
+            color: #fff;
+        }
+        .recurrent-connection {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 2px solid #1de9b6;
+            border-radius: 50%;
+            top: -20px;
+            left: -20px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>NNLM vs RNN 架构对比</h1>
+        
+        <div class="model-container">
+            <h2 class="model-title">NNLM (神经网络语言模型)</h2>
+            <div class="explanation">
+                <p>NNLM使用固定窗口大小的输入，通过全连接层处理所有输入词的信息。每个时间步都是独立的，没有记忆机制。</p>
+            </div>
+            <div class="architecture">
+                <div class="layer">
+                    <div class="layer-title">输入层</div>
+                    <div class="node">猫</div>
+                    <div class="node">喜欢</div>
+                    <div class="node">吃</div>
+                </div>
+                <div class="arrow">→</div>
+                <div class="layer">
+                    <div class="layer-title">Embedding层</div>
+                    <div class="node">E1</div>
+                    <div class="node">E2</div>
+                    <div class="node">E3</div>
+                </div>
+                <div class="arrow">→</div>
+                <div class="layer">
+                    <div class="layer-title">隐藏层</div>
+                    <div class="node highlight">H1</div>
+                    <div class="node highlight">H2</div>
+                    <div class="node highlight">H3</div>
+                </div>
+                <div class="arrow">→</div>
+                <div class="layer">
+                    <div class="layer-title">输出层</div>
+                    <div class="node">鱼</div>
+                    <div class="node">罐头</div>
+                    <div class="node">睡觉</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="model-container">
+            <h2 class="model-title">RNN (循环神经网络)</h2>
+            <div class="explanation">
+                <p>RNN通过循环连接保持状态信息，可以处理任意长度的序列。每个时间步都会考虑之前的信息。</p>
+            </div>
+            <div class="architecture">
+                <div class="layer">
+                    <div class="layer-title">输入层</div>
+                    <div class="node">猫</div>
+                    <div class="node">喜欢</div>
+                    <div class="node">吃</div>
+                </div>
+                <div class="arrow">→</div>
+                <div class="layer">
+                    <div class="layer-title">RNN层</div>
+                    <div class="node">
+                        <div class="recurrent-connection"></div>
+                        R1
+                    </div>
+                    <div class="node">
+                        <div class="recurrent-connection"></div>
+                        R2
+                    </div>
+                    <div class="node">
+                        <div class="recurrent-connection"></div>
+                        R3
+                    </div>
+                </div>
+                <div class="arrow">→</div>
+                <div class="layer">
+                    <div class="layer-title">输出层</div>
+                    <div class="node">鱼</div>
+                    <div class="node">罐头</div>
+                    <div class="node">睡觉</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="model-container">
+            <h2 class="model-title">主要区别对比</h2>
+            <table class="comparison-table">
+                <tr>
+                    <th>特性</th>
+                    <th>NNLM</th>
+                    <th>RNN</th>
+                </tr>
+                <tr>
+                    <td>输入窗口</td>
+                    <td>固定大小</td>
+                    <td>可变长度</td>
+                </tr>
+                <tr>
+                    <td>记忆机制</td>
+                    <td>无</td>
+                    <td>通过循环连接保持状态</td>
+                </tr>
+                <tr>
+                    <td>参数数量</td>
+                    <td>随窗口大小线性增长</td>
+                    <td>固定，与序列长度无关</td>
+                </tr>
+                <tr>
+                    <td>长距离依赖</td>
+                    <td>难以捕捉</td>
+                    <td>理论上可以捕捉，但存在梯度消失问题</td>
+                </tr>
+                <tr>
+                    <td>并行计算</td>
+                    <td>可以并行</td>
+                    <td>必须顺序计算</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</body>
+</html> 

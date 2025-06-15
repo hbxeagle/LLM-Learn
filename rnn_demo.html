@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>RNN运行过程可视化演示</title>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+            background: #181f2a;
+            margin: 0;
+            padding: 0;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #eaf6ff;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            background: #232b3a;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px #0006;
+            padding: 36px;
+        }
+        .step {
+            margin: 30px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border-radius: 16px;
+            box-shadow: 0 2px 12px #1de9b633;
+            border: 2px solid #3de0ff44;
+        }
+        .word-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .word-box {
+            border: 2px solid #3de0ff44;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            color: #eaf6ff;
+            font-size: 1.4em;
+            font-weight: bold;
+        }
+        .vector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .vector-value {
+            width: 36px;
+            height: 40px;
+            padding: 0 18px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border: 2px solid #3de0ff;
+            margin: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 19px;
+            color: #eaf6ff;
+            border-radius: 8px;
+            transition: background 0.3s, border 0.3s;
+        }
+        .one-hot-value {
+            width: 36px;
+            height: 40px;
+            padding: 0 18px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border: 2px solid #1de9b6;
+            margin: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 19px;
+            color: #eaf6ff;
+            border-radius: 8px;
+            transition: background 0.3s, border 0.3s;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border-radius: 8px;
+            border: 2px solid #3de0ff44;
+            color: #eaf6ff;
+            font-size: 1.2em;
+        }
+        .explanation {
+            margin: 10px 0;
+            padding: 10px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border-radius: 8px;
+            color: #7ee7ff;
+        }
+        .step-label {
+            text-align: center;
+            margin: 8px 0 16px 0;
+            color: #7ee7ff;
+        }
+        .formula {
+            text-align: center;
+            font-size: 18px;
+            color: #3de0ff;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+        .highlight {
+            background: linear-gradient(135deg, #1de9b6 0%, #2979ff 100%);
+            border-color: #1de9b6 !important;
+            color: #fff !important;
+            width: auto;
+        }
+        .rnn-arrow {
+            font-size: 2em;
+            color: #3de0ff;
+            margin: 0 10px;
+        }
+        .state-label {
+            color: #b388ff;
+            font-size: 1em;
+            margin-bottom: 4px;
+        }
+        .param-label {
+            color: #aeea00;
+            font-size: 1em;
+            margin-bottom: 4px;
+        }
+        .embedding-matrix-table {
+            border-collapse: collapse;
+            margin: 0 auto;
+        }
+        .embedding-matrix-table td, .embedding-matrix-table th {
+            border: 2px solid #3de0ff;
+            padding: 8px 14px;
+            text-align: center;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            color: #eaf6ff;
+            font-size: 1em;
+            border-radius: 6px;
+        }
+        .embedding-matrix-table th {
+            background: linear-gradient(135deg, #1de9b6 0%, #2979ff 100%);
+            color: #fff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="step">
+            <h2>RNN结构总览</h2>
+            <div class="explanation">
+                <p>RNN（循环神经网络）通过隐藏状态（state）传递历史信息，实现对序列数据的建模。每一步的参数共享，输入为词嵌入，输出为新的隐藏状态。</p>
+            </div>
+            <div id="rnn-structure" style="position: relative; height: 440px; width: 700px; margin: 0 auto 0 auto;">
+                <canvas id="rnn-canvas" width="700" height="440" style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
+                <div id="rnn-nodes" style="position: absolute; left: 0; top: 0; width: 700px; height: 440px; z-index: 1;"></div>
+            </div>
+            <div class="explanation" style="margin: 30px auto 0 auto; max-width: 520px; text-align: left;">
+                <b>权重矩阵说明：</b><br>
+                <span style="color:#1de9b6;">W<sub>xh</sub></span>：输入层到隐藏层，形状 (h, x)<br>
+                <span style="color:#b388ff;">W<sub>hh</sub></span>：隐藏层到隐藏层，形状 (h, h)<br>
+                <span style="color:#ffb347;">W<sub>hy</sub></span>：隐藏层到输出层，形状 (y, h)<br>
+                <span style="color:#7ee7ff;">b<sub>h</sub></span>、<span style="color:#7ee7ff;">b<sub>y</sub></span>：偏置向量
+                <br><br>
+                <b>符号说明：</b><br>
+                <span style="color:#b388ff;">h</span>：隐藏层状态的维度（记忆/特征向量）<br>
+                <span style="color:#1de9b6;">x</span>：输入向量的维度（如词嵌入）<br>
+                <span style="color:#ffb347;">y</span>：输出向量的维度（如预测结果）
+            </div>
+        </div>
+        <h1>RNN运行过程可视化</h1>
+        <p class="intro">以"猫 喜欢 吃 鱼"为例，展示RNN的完整计算过程</p>
+        <div class="step">
+            <h2>步骤1：词语独热编码</h2>
+            <div class="explanation">
+                <p>首先，将每个词转换为独热编码（One-Hot Encoding）。</p>
+            </div>
+            <div class="word-grid">
+                <div class="word-box">
+                    <h3>猫</h3>
+                    <div class="vector" id="cat-onehot"></div>
+                </div>
+                <div class="word-box">
+                    <h3>喜欢</h3>
+                    <div class="vector" id="like-onehot"></div>
+                </div>
+                <div class="word-box">
+                    <h3>吃</h3>
+                    <div class="vector" id="eat-onehot"></div>
+                </div>
+                <div class="word-box">
+                    <h3>鱼</h3>
+                    <div class="vector" id="fish-onehot"></div>
+                </div>
+            </div>
+        </div>
+        <div class="step">
+            <h2>步骤2：Embedding查表</h2>
+            <div class="explanation">
+                <p>每个词的独热编码与Embedding矩阵相乘，得到词嵌入向量。</p>
+            </div>
+            <div style="display: flex; justify-content: center;">
+                <div id="embedding-matrix"></div>
+            </div>
+            <div class="word-grid">
+                <div class="word-box">
+                    <h3>猫</h3>
+                    <div class="vector" id="cat-embed"></div>
+                </div>
+                <div class="word-box">
+                    <h3>喜欢</h3>
+                    <div class="vector" id="like-embed"></div>
+                </div>
+                <div class="word-box">
+                    <h3>吃</h3>
+                    <div class="vector" id="eat-embed"></div>
+                </div>
+                <div class="word-box">
+                    <h3>鱼</h3>
+                    <div class="vector" id="fish-embed"></div>
+                </div>
+            </div>
+        </div>
+        <div class="step">
+            <h2>步骤3：RNN每步状态传递</h2>
+            <div class="explanation">
+                <p>每一步，RNN接收当前词的embedding和上一步的隐藏状态，经过参数A（权重矩阵）计算，得到新的隐藏状态。</p>
+            </div>
+            <div id="rnn-steps"></div>
+        </div>
+    </div>
+    <script>
+        // 词表和输入
+        const vocab = ['猫', '喜欢', '吃', '鱼'];
+        const vocabSize = vocab.length;
+        const embedSize = 5;
+        const hiddenSize = 4;
+        // 生成独热编码
+        function generateOneHot(index, size) {
+            return Array(size).fill(0).map((_, i) => i === index ? 1 : 0);
+        }
+        // 显示向量
+        function displayVector(vector, elementId, isOneHot = false) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = '';
+            vector.forEach(value => {
+                const div = document.createElement('div');
+                div.className = isOneHot ? 'one-hot-value' : 'vector-value';
+                div.textContent = value;
+                container.appendChild(div);
+            });
+        }
+        // 生成embedding矩阵
+        function generateEmbeddingMatrix(vocabSize, embedSize) {
+            return Array.from({length: vocabSize}, () =>
+                Array.from({length: embedSize}, () => +(Math.random() * 2 - 1).toFixed(2))
+            );
+        }
+        // 显示embedding矩阵
+        function displayEmbeddingMatrix(matrix, rowLabels, colLabels) {
+            let html = '<table class="embedding-matrix-table">';
+            html += '<tr><th></th>';
+            for (let j = 0; j < colLabels.length; j++) {
+                html += `<th>${colLabels[j]}</th>`;
+            }
+            html += '</tr>';
+            for (let i = 0; i < matrix.length; i++) {
+                html += `<tr><th>${rowLabels[i]}</th>`;
+                for (let j = 0; j < matrix[i].length; j++) {
+                    html += `<td>${matrix[i][j]}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</table>';
+            document.getElementById('embedding-matrix').innerHTML = html;
+        }
+        // 初始化
+        const onehots = vocab.map((_, i) => generateOneHot(i, vocabSize));
+        displayVector(onehots[0], 'cat-onehot', true);
+        displayVector(onehots[1], 'like-onehot', true);
+        displayVector(onehots[2], 'eat-onehot', true);
+        displayVector(onehots[3], 'fish-onehot', true);
+        // Embedding
+        const embeddingMatrix = generateEmbeddingMatrix(vocabSize, embedSize);
+        const embedLabels = Array.from({length: embedSize}, (_, i) => `e${i+1}`);
+        displayEmbeddingMatrix(embeddingMatrix, vocab, embedLabels);
+        // 查表
+        const embeds = vocab.map((_, i) => embeddingMatrix[i]);
+        displayVector(embeds[0], 'cat-embed');
+        displayVector(embeds[1], 'like-embed');
+        displayVector(embeds[2], 'eat-embed');
+        displayVector(embeds[3], 'fish-embed');
+        // RNN参数
+        function generateMatrix(rows, cols) {
+            return Array.from({length: rows}, () =>
+                Array.from({length: cols}, () => +(Math.random() * 2 - 1).toFixed(2))
+            );
+        }
+        // RNN权重: h_t = tanh(W_h h_{t-1} + W_x x_t + b)
+        const W_h = generateMatrix(hiddenSize, hiddenSize); // h_{t-1} * W_h
+        const W_x = generateMatrix(hiddenSize, embedSize);  // x_t * W_x
+        const b = Array.from({length: hiddenSize}, () => +(Math.random() * 2 - 1).toFixed(2));
+        // 激活函数
+        function tanh(x) { return Math.tanh(x); }
+        function matVecMul(matrix, vec) {
+            const m = matrix.length;
+            const result = Array(m).fill(0);
+            for (let i = 0; i < m; i++) {
+                for (let j = 0; j < vec.length; j++) {
+                    result[i] += matrix[i][j] * vec[j];
+                }
+            }
+            return result;
+        }
+        function vecAdd(a, b) {
+            return a.map((v, i) => v + b[i]);
+        }
+        // RNN运行
+        let hPrev = Array(hiddenSize).fill(0); // h0=0
+        const rnnSteps = [];
+        for (let t = 0; t < vocab.length; t++) {
+            const x = embeds[t];
+            const Whh = matVecMul(W_h, hPrev);
+            const Wxx = matVecMul(W_x, x);
+            let h = vecAdd(vecAdd(Whh, Wxx), b).map(tanh).map(v => +v.toFixed(2));
+            rnnSteps.push({
+                step: t,
+                word: vocab[t],
+                x,
+                hPrev: hPrev.slice(),
+                h: h.slice(),
+                Whh: Whh.slice(),
+                Wxx: Wxx.slice()
+            });
+            hPrev = h;
+        }
+        // 展示RNN每步
+        function displayRnnSteps() {
+            const container = document.getElementById('rnn-steps');
+            container.innerHTML = '';
+            rnnSteps.forEach((step, idx) => {
+                const div = document.createElement('div');
+                div.style.marginBottom = '28px';
+                div.innerHTML = `
+                    <div class="step-label">第${idx+1}步：输入 <b>${step.word}</b></div>
+                    <div style="display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap;">
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div class="state-label">h<sub>${idx}</sub></div>
+                            <div class="vector">${step.hPrev.map(v => `<div class='vector-value'>${v}</div>`).join('')}</div>
+                        </div>
+                        <span class="rnn-arrow">+</span>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div style="color:#7ee7ff;">当前词embedding</div>
+                            <div class="vector">${step.x.map(v => `<div class='vector-value'>${v}</div>`).join('')}</div>
+                        </div>
+                        <span class="rnn-arrow">→</span>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div class="param-label">Wₕ·h<sub>${idx}</sub> + Wₓ·x + b</div>
+                            <div class="vector">${step.h.map(v => `<div class='vector-value'>${v}</div>`).join('')}</div>
+                        </div>
+                        <span class="rnn-arrow">=</span>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div class="state-label">h<sub>${idx+1}</sub></div>
+                            <div class="vector">${step.h.map(v => `<div class='vector-value highlight'>${v}</div>`).join('')}</div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+        displayRnnSteps();
+        // RNN结构图渲染
+        function renderRNNStructure() {
+            const canvas = document.getElementById('rnn-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 节点坐标（竖直三列+词语列，间距更大）
+            const wordBaseX = 40, xBaseX = 160, hBaseX = 340, yBaseX = 520;
+            const baseY = 60, gapY = 90;
+            const vocabWords = ['猫', '喜欢', '吃', '鱼'];
+            const nodes = [
+                {x: xBaseX, y: baseY+gapY*0, label: 'x₀', type: 'input', word: vocabWords[0]},
+                {x: xBaseX, y: baseY+gapY*1, label: 'x₁', type: 'input', word: vocabWords[1]},
+                {x: xBaseX, y: baseY+gapY*2, label: 'x₂', type: 'input', word: vocabWords[2]},
+                {x: xBaseX, y: baseY+gapY*3, label: 'x₃', type: 'input', word: vocabWords[3]},
+                {x: hBaseX, y: baseY+gapY*0, label: 'h₀', type: 'state'},
+                {x: hBaseX, y: baseY+gapY*1, label: 'h₁', type: 'state'},
+                {x: hBaseX, y: baseY+gapY*2, label: 'h₂', type: 'state'},
+                {x: hBaseX, y: baseY+gapY*3, label: 'h₃', type: 'state'},
+                {x: yBaseX, y: baseY+gapY*0, label: 'y₀', type: 'output'},
+                {x: yBaseX, y: baseY+gapY*1, label: 'y₁', type: 'output'},
+                {x: yBaseX, y: baseY+gapY*2, label: 'y₂', type: 'output'},
+                {x: yBaseX, y: baseY+gapY*3, label: 'y₃', type: 'output'}
+            ];
+            // 画词语到x节点的虚线
+            ctx.save();
+            ctx.setLineDash([6, 6]);
+            ctx.strokeStyle = '#7ee7ff88';
+            ctx.lineWidth = 2;
+            for(let i=0;i<4;i++) {
+                ctx.beginPath();
+                ctx.moveTo(wordBaseX+60, baseY+gapY*i);
+                ctx.lineTo(xBaseX-22, baseY+gapY*i);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+            ctx.restore();
+            // 画权重箭头
+            function drawArrow(x1, y1, x2, y2, color='#3de0ff', width=3, label='', labelOffsetX=0, labelOffsetY=0, curve=0) {
+                ctx.save();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
+                ctx.beginPath();
+                if(curve!==0) {
+                    // 二次贝塞尔曲线
+                    const mx = (x1+x2)/2 + curve;
+                    ctx.moveTo(x1, y1);
+                    ctx.quadraticCurveTo(mx, (y1+y2)/2, x2, y2);
+                } else {
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                }
+                ctx.stroke();
+                // 箭头
+                const angle = Math.atan2(y2-y1, x2-x1);
+                ctx.beginPath();
+                ctx.moveTo(x2, y2);
+                ctx.lineTo(x2-12*Math.cos(angle-Math.PI/7), y2-12*Math.sin(angle-Math.PI/7));
+                ctx.lineTo(x2-12*Math.cos(angle+Math.PI/7), y2-12*Math.sin(angle+Math.PI/7));
+                ctx.lineTo(x2, y2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                // 权重标签
+                if(label) {
+                    ctx.save();
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillStyle = color;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(label, (x1+x2)/2+labelOffsetX, (y1+y2)/2+labelOffsetY);
+                    ctx.restore();
+                }
+                ctx.restore();
+            }
+            // 输入到隐藏层 W_xh
+            for(let i=0;i<4;i++) {
+                drawArrow(nodes[i].x+22, nodes[i].y, nodes[4+i].x-22, nodes[4+i].y, '#1de9b6', 4, 'Wₓₕ', -18, -18, -30);
+            }
+            // 隐藏层到隐藏层 W_hh
+            for(let i=0;i<3;i++) {
+                drawArrow(nodes[4+i].x, nodes[4+i].y+22, nodes[5+i].x, nodes[5+i].y-22, '#b388ff', 4, 'Wₕₕ', 0, 18, 0);
+            }
+            // 隐藏层到输出层 W_hy
+            for(let i=0;i<4;i++) {
+                drawArrow(nodes[4+i].x+22, nodes[4+i].y, nodes[8+i].x-22, nodes[8+i].y, '#ffb347', 4, 'Wₕy', 18, -18, 30);
+            }
+            // 节点div
+            const nodeDiv = document.getElementById('rnn-nodes');
+            nodeDiv.innerHTML = '';
+            // 词语列
+            for(let i=0;i<4;i++) {
+                const w = document.createElement('div');
+                w.style.position = 'absolute';
+                w.style.left = (wordBaseX)+'px';
+                w.style.top = (baseY+gapY*i-18)+'px';
+                w.style.width = '60px';
+                w.style.textAlign = 'right';
+                w.style.color = '#7ee7ff';
+                w.style.fontWeight = 'bold';
+                w.style.fontSize = '20px';
+                w.innerText = vocabWords[i];
+                nodeDiv.appendChild(w);
+            }
+            nodes.forEach(n => {
+                const d = document.createElement('div');
+                d.style.position = 'absolute';
+                d.style.left = (n.x-22)+'px';
+                d.style.top = (n.y-22)+'px';
+                d.style.width = '44px';
+                d.style.height = '44px';
+                d.style.borderRadius = '50%';
+                d.style.display = 'flex';
+                d.style.alignItems = 'center';
+                d.style.justifyContent = 'center';
+                d.style.fontWeight = 'bold';
+                d.style.fontSize = '20px';
+                d.style.boxShadow = '0 4px 16px #1de9b655, 0 0 0 4px #fff1 inset';
+                d.style.border = '2.5px solid #fff3';
+                d.style.zIndex = 2;
+                if(n.type==='input') d.style.background = 'linear-gradient(135deg, #2979ff 0%, #1de9b6 100%)';
+                else if(n.type==='state') d.style.background = 'linear-gradient(135deg, #b388ff 0%, #7ee7ff 100%)';
+                else d.style.background = 'linear-gradient(135deg, #ffb347 0%, #fff176 100%)';
+                d.style.color = '#fff';
+                d.innerText = n.label;
+                nodeDiv.appendChild(d);
+            });
+        }
+        window.onload = function() {
+            renderRNNStructure();
+            displayRnnSteps();
+        }
+    </script>
+</body>
+</html> 

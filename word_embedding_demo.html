@@ -419,7 +419,7 @@
         displayVector(eatOneHot, 'eat-one-hot', true);
 
         // 初始化embedding权重矩阵
-        const embeddingSize = 5; // 词嵌入维度
+        const embeddingSize = 6; // 词嵌入维度改为6
         const embeddingMatrix = generateEmbeddingMatrix(vocabSize, embeddingSize);
         const embedLabels = Array.from({length: embeddingSize}, (_, i) => `e${i+1}`);
         displayEmbeddingMatrix(embeddingMatrix, vocabLabels, embedLabels);
@@ -469,7 +469,8 @@
         displayConcatEmbed();
 
         // 隐藏层参数
-        const hiddenSize = 6;
+        const hiddenSize = 6;  // 隐藏层节点数
+        const inputSize = 3 * embeddingSize;  // (n-1) * d = 3 * 6 = 18
         function generateMatrix(rows, cols) {
             return Array.from({length: rows}, () =>
                 Array.from({length: cols}, () => +(Math.random() * 2 - 1).toFixed(2))
@@ -477,8 +478,15 @@
         }
         function displayMatrix(matrix, elementId) {
             let html = '<table class="embedding-matrix-table">';
+            // 添加列标题
+            html += '<tr><th></th>';
+            for (let j = 0; j < matrix[0].length; j++) {
+                html += `<th>i${j+1}</th>`;
+            }
+            html += '</tr>';
+            // 添加行标题和内容
             for (let i = 0; i < matrix.length; i++) {
-                html += '<tr>';
+                html += `<tr><th>h${i+1}</th>`;
                 for (let j = 0; j < matrix[i].length; j++) {
                     html += `<td>${matrix[i][j]}</td>`;
                 }
@@ -488,7 +496,7 @@
             document.getElementById(elementId).innerHTML = html;
         }
         // 隐藏层权重和偏置
-        const hiddenMatrix = generateMatrix(concatEmbed.length, hiddenSize);
+        const hiddenMatrix = generateMatrix(hiddenSize, inputSize);  // 6×18
         const hiddenBias = Array.from({length: hiddenSize}, () => +(Math.random() * 2 - 1).toFixed(2));
         displayMatrix(hiddenMatrix, 'hidden-matrix');
         displayVector(hiddenBias, 'hidden-bias');
@@ -496,12 +504,12 @@
         // 隐藏层输出（线性+激活，激活用ReLU）
         function relu(x) { return Math.max(0, x); }
         function matVecMul(matrix, vec) {
-            // matrix: n×m, vec: n
-            const m = matrix[0].length;
+            // matrix: m×n, vec: n
+            const m = matrix.length;
             const result = Array(m).fill(0);
-            for (let j = 0; j < m; j++) {
-                for (let i = 0; i < matrix.length; i++) {
-                    result[j] += matrix[i][j] * vec[i];
+            for (let i = 0; i < m; i++) {
+                for (let j = 0; j < vec.length; j++) {
+                    result[i] += matrix[i][j] * vec[j];
                 }
             }
             return result;
@@ -518,18 +526,7 @@
         displayVector(outputBias, 'output-bias');
 
         // 输出层logits
-        function matVecMul2(matrix, vec) {
-            // matrix: m×n, vec: m
-            const n = matrix[0].length;
-            const result = Array(n).fill(0);
-            for (let j = 0; j < n; j++) {
-                for (let i = 0; i < matrix.length; i++) {
-                    result[j] += matrix[i][j] * vec[i];
-                }
-            }
-            return result;
-        }
-        const outputLogits = matVecMul2(outputMatrix, hiddenOutput).map((v, i) => v + Number(outputBias[i]));
+        const outputLogits = matVecMul(outputMatrix, hiddenOutput).map((v, i) => v + Number(outputBias[i]));
         const outputLogitsFixed = outputLogits.map(v => +v.toFixed(2));
         displayVector(outputLogitsFixed, 'output-logits');
 

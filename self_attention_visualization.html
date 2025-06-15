@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>Self-Attention 机制可视化</title>
+  <style>
+    body { 
+      font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif; 
+      background: #181f2a; 
+      margin: 0; 
+      padding: 0; 
+    }
+    h1, h2 { 
+      text-align: center; 
+      color: #eaf6ff; 
+    }
+    .container { 
+      max-width: 1200px; 
+      margin: 30px auto; 
+      background: #232b3a; 
+      border-radius: 16px; 
+      box-shadow: 0 4px 24px #0006; 
+      padding: 36px; 
+    }
+    .section { 
+      margin-bottom: 48px; 
+    }
+    .attention-diagram { 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      gap: 40px; 
+      margin: 32px 0; 
+    }
+    .token { 
+      width: 60px; 
+      height: 60px; 
+      background: linear-gradient(135deg, #1de9b6 0%, #2979ff 100%); 
+      border-radius: 12px; 
+      border: 2.5px solid #fff3; 
+      box-shadow: 0 2px 8px #1de9b655; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      color: #fff; 
+      font-weight: bold; 
+      font-size: 24px; 
+      transition: all 0.3s; 
+    }
+    .token:hover { 
+      transform: scale(1.05); 
+      background: linear-gradient(135deg, #2979ff 0%, #1de9b6 100%); 
+    }
+    .matrix { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 8px; 
+    }
+    .matrix-row { 
+      display: flex; 
+      gap: 8px; 
+    }
+    .cell { 
+      width: 50px; 
+      height: 50px; 
+      background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%); 
+      border: 2px solid #3de0ff; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      font-size: 18px; 
+      color: #eaf6ff; 
+      border-radius: 8px; 
+      transition: all 0.3s; 
+    }
+    .cell.highlight { 
+      background: linear-gradient(135deg, #1de9b6 0%, #2979ff 100%); 
+      border-color: #1de9b6; 
+      color: #fff; 
+    }
+    .arrow { 
+      font-size: 32px; 
+      color: #3de0ff; 
+      font-weight: bold; 
+    }
+    .step-box { 
+      background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%); 
+      border-radius: 16px; 
+      box-shadow: 0 2px 12px #1de9b633; 
+      border: 2px solid #3de0ff44; 
+      padding: 24px; 
+      margin: 20px 0; 
+    }
+    .formula { 
+      text-align: center; 
+      font-size: 20px; 
+      color: #3de0ff; 
+      margin: 16px 0; 
+    }
+    .note { 
+      color: #7ee7ff; 
+      font-size: 14px; 
+      text-align: center; 
+      margin-top: 8px; 
+    }
+    .attention-score { 
+      position: absolute; 
+      background: rgba(29, 233, 182, 0.1); 
+      border: 2px solid #1de9b6; 
+      border-radius: 8px; 
+      padding: 4px 8px; 
+      color: #1de9b6; 
+      font-size: 14px; 
+      font-weight: bold; 
+    }
+    .attention-flow { 
+      position: absolute; 
+      stroke: #1de9b6; 
+      stroke-width: 2; 
+      stroke-dasharray: 5,5; 
+      animation: flow 1s linear infinite; 
+    }
+    .vector-detail {
+      background: rgba(29, 233, 182, 0.05);
+      border: 1px solid #3de0ff44;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+    .vector-row {
+      display: flex;
+      gap: 8px;
+      margin: 8px 0;
+      justify-content: center;
+    }
+    .vector-cell {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+      border: 1px solid #3de0ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #eaf6ff;
+      border-radius: 4px;
+    }
+    .vector-label {
+      color: #7ee7ff;
+      font-size: 14px;
+      margin-right: 8px;
+      min-width: 60px;
+    }
+    @keyframes flow { 
+      from { stroke-dashoffset: 10; } 
+      to { stroke-dashoffset: 0; } 
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Self-Attention 机制可视化</h1>
+    
+    <div class="section">
+      <h2>1. 输入序列</h2>
+      <div class="attention-diagram" style="height: 200px; position: relative;">
+        <div class="token">猫</div>
+        <div class="token">喜</div>
+        <div class="token">欢</div>
+        <div class="token">吃</div>
+        <div class="token">鱼</div>
+      </div>
+      <div class="note">每个token都会被转换为向量表示</div>
+      
+      <div class="vector-detail">
+        <div class="formula">词向量表示（示例）</div>
+        <div class="vector-row">
+          <span class="vector-label">猫:</span>
+          <div class="vector-cell">0.8</div>
+          <div class="vector-cell">0.2</div>
+          <div class="vector-cell">0.1</div>
+          <div class="vector-cell">0.3</div>
+        </div>
+        <div class="vector-row">
+          <span class="vector-label">喜:</span>
+          <div class="vector-cell">0.1</div>
+          <div class="vector-cell">0.7</div>
+          <div class="vector-cell">0.3</div>
+          <div class="vector-cell">0.2</div>
+        </div>
+        <div class="vector-row">
+          <span class="vector-label">欢:</span>
+          <div class="vector-cell">0.2</div>
+          <div class="vector-cell">0.6</div>
+          <div class="vector-cell">0.4</div>
+          <div class="vector-cell">0.1</div>
+        </div>
+        <div class="vector-row">
+          <span class="vector-label">吃:</span>
+          <div class="vector-cell">0.3</div>
+          <div class="vector-cell">0.2</div>
+          <div class="vector-cell">0.8</div>
+          <div class="vector-cell">0.4</div>
+        </div>
+        <div class="vector-row">
+          <span class="vector-label">鱼:</span>
+          <div class="vector-cell">0.4</div>
+          <div class="vector-cell">0.1</div>
+          <div class="vector-cell">0.3</div>
+          <div class="vector-cell">0.9</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>2. 计算注意力分数</h2>
+      <div class="formula">Attention(Q, K, V) = softmax(QK^T/√d)V</div>
+      
+      <div class="vector-detail">
+        <div class="formula">步骤1: 计算Q、K、V矩阵</div>
+        <div class="vector-row">
+          <span class="vector-label">Q矩阵:</span>
+          <div class="vector-cell">0.8</div>
+          <div class="vector-cell">0.2</div>
+          <div class="vector-cell">0.1</div>
+          <div class="vector-cell">0.3</div>
+        </div>
+        <div class="vector-row">
+          <span class="vector-label">K矩阵:</span>
+          <div class="vector-cell">0.7</div>
+          <div class="vector-cell">0.3</div>
+          <div class="vector-cell">0.2</div>
+          <div class="vector-cell">0.4</div>
+        </div>
+        <div class="vector-row">
+          <span class="vector-label">V矩阵:</span>
+          <div class="vector-cell">0.6</div>
+          <div class="vector-cell">0.4</div>
+          <div class="vector-cell">0.3</div>
+          <div class="vector-cell">0.5</div>
+        </div>
+      </div>
+
+      <div class="vector-detail">
+        <div class="formula">步骤2: 计算注意力分数矩阵</div>
+        <div class="matrix" style="margin: 0 auto;">
+          <div class="matrix-row">
+            <div class="cell highlight">0.8</div>
+            <div class="cell">0.2</div>
+            <div class="cell">0.1</div>
+            <div class="cell">0.3</div>
+            <div class="cell">0.4</div>
+          </div>
+          <div class="matrix-row">
+            <div class="cell">0.2</div>
+            <div class="cell highlight">0.7</div>
+            <div class="cell">0.3</div>
+            <div class="cell">0.4</div>
+            <div class="cell">0.2</div>
+          </div>
+          <div class="matrix-row">
+            <div class="cell">0.1</div>
+            <div class="cell">0.3</div>
+            <div class="cell highlight">0.6</div>
+            <div class="cell">0.5</div>
+            <div class="cell">0.3</div>
+          </div>
+          <div class="matrix-row">
+            <div class="cell">0.3</div>
+            <div class="cell">0.4</div>
+            <div class="cell">0.5</div>
+            <div class="cell highlight">0.9</div>
+            <div class="cell">0.6</div>
+          </div>
+          <div class="matrix-row">
+            <div class="cell">0.4</div>
+            <div class="cell">0.2</div>
+            <div class="cell">0.3</div>
+            <div class="cell">0.6</div>
+            <div class="cell highlight">0.8</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>3. 注意力权重可视化</h2>
+      <div class="attention-diagram" style="height: 400px; position: relative;">
+        <svg width="1000" height="400" style="position: absolute; top: 0; left: 0;">
+          <!-- 连接线 -->
+          <line x1="100" y1="100" x2="300" y2="100" class="attention-flow" />
+          <line x1="100" y1="100" x2="500" y2="100" class="attention-flow" />
+          <line x1="100" y1="100" x2="700" y2="100" class="attention-flow" />
+          <line x1="100" y1="100" x2="900" y2="100" class="attention-flow" />
+          
+          <line x1="300" y1="100" x2="100" y2="100" class="attention-flow" />
+          <line x1="300" y1="100" x2="500" y2="100" class="attention-flow" />
+          <line x1="300" y1="100" x2="700" y2="100" class="attention-flow" />
+          <line x1="300" y1="100" x2="900" y2="100" class="attention-flow" />
+          
+          <line x1="500" y1="100" x2="100" y2="100" class="attention-flow" />
+          <line x1="500" y1="100" x2="300" y2="100" class="attention-flow" />
+          <line x1="500" y1="100" x2="700" y2="100" class="attention-flow" />
+          <line x1="500" y1="100" x2="900" y2="100" class="attention-flow" />
+          
+          <line x1="700" y1="100" x2="100" y2="100" class="attention-flow" />
+          <line x1="700" y1="100" x2="300" y2="100" class="attention-flow" />
+          <line x1="700" y1="100" x2="500" y2="100" class="attention-flow" />
+          <line x1="700" y1="100" x2="900" y2="100" class="attention-flow" />
+          
+          <line x1="900" y1="100" x2="100" y2="100" class="attention-flow" />
+          <line x1="900" y1="100" x2="300" y2="100" class="attention-flow" />
+          <line x1="900" y1="100" x2="500" y2="100" class="attention-flow" />
+          <line x1="900" y1="100" x2="700" y2="100" class="attention-flow" />
+        </svg>
+        
+        <div class="token" style="position: absolute; left: 80px; top: 80px;">猫</div>
+        <div class="token" style="position: absolute; left: 280px; top: 80px;">喜</div>
+        <div class="token" style="position: absolute; left: 480px; top: 80px;">欢</div>
+        <div class="token" style="position: absolute; left: 680px; top: 80px;">吃</div>
+        <div class="token" style="position: absolute; left: 880px; top: 80px;">鱼</div>
+        
+        <!-- 注意力分数标签 -->
+        <div class="attention-score" style="left: 180px; top: 60px;">0.8</div>
+        <div class="attention-score" style="left: 380px; top: 60px;">0.2</div>
+        <div class="attention-score" style="left: 580px; top: 60px;">0.1</div>
+        <div class="attention-score" style="left: 780px; top: 60px;">0.3</div>
+      </div>
+      <div class="note">箭头表示注意力流向，数字表示注意力权重</div>
+    </div>
+
+    <div class="section">
+      <h2>4. 输出表示</h2>
+      <div class="attention-diagram" style="height: 200px; position: relative;">
+        <div class="token" style="background: linear-gradient(135deg, #2979ff 0%, #1de9b6 100%);">猫'</div>
+        <div class="token" style="background: linear-gradient(135deg, #2979ff 0%, #1de9b6 100%);">喜'</div>
+        <div class="token" style="background: linear-gradient(135deg, #2979ff 0%, #1de9b6 100%);">欢'</div>
+        <div class="token" style="background: linear-gradient(135deg, #2979ff 0%, #1de9b6 100%);">吃'</div>
+        <div class="token" style="background: linear-gradient(135deg, #2979ff 0%, #1de9b6 100%);">鱼'</div>
+      </div>
+      
+      <div class="vector-detail">
+        <div class="formula">最终输出向量（示例）</div>
+        <div class="vector-row">
+          <span class="vector-label">猫':</span>
+          <div class="vector-cell">0.85</div>
+          <div class="vector-cell">0.25</div>
+          <div class="vector-cell">0.15</div>
+          <div class="vector-cell">0.35</div>
+        </div>
+        <div class="vector-row">
+          <span class="vector-label">喜':</span>
+          <div class="vector-cell">0.15</div>
+          <div class="vector-cell">0.75</div>
+          <div class="vector-cell">0.35</div>
+          <div class="vector-cell">0.25</div>
+        </div>
+        <div class="vector-row">
+          <span class="vector-label">欢':</span>
+          <div class="vector-cell">0.25</div>
+          <div class="vector-cell">0.65</div>
+          <div class="vector-cell">0.45</div>
+          <div class="vector-cell">0.15</div>
+        </div>
+        <div class="vector-row">
+          <span class="vector-label">吃':</span>
+          <div class="vector-cell">0.35</div>
+          <div class="vector-cell">0.25</div>
+          <div class="vector-cell">0.85</div>
+          <div class="vector-cell">0.45</div>
+        </div>
+        <div class="vector-row">
+          <span class="vector-label">鱼':</span>
+          <div class="vector-cell">0.45</div>
+          <div class="vector-cell">0.15</div>
+          <div class="vector-cell">0.35</div>
+          <div class="vector-cell">0.95</div>
+        </div>
+      </div>
+      <div class="note">每个token都获得了考虑上下文信息的新表示</div>
+    </div>
+  </div>
+
+  <script>
+    // 添加动画效果
+    document.querySelectorAll('.token').forEach(token => {
+      token.addEventListener('mouseover', () => {
+        token.style.transform = 'scale(1.1)';
+      });
+      token.addEventListener('mouseout', () => {
+        token.style.transform = 'scale(1)';
+      });
+    });
+  </script>
+</body>
+</html> 
