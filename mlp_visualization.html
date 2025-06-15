@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>多层感知机（MLP）运算过程可视化</title>
+  <style>
+    body { font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif; background: #181f2a; margin: 0; padding: 0; }
+    h1, h2 { text-align: center; color: #eaf6ff; }
+    .container { max-width: 1000px; margin: 30px auto; background: #232b3a; border-radius: 16px; box-shadow: 0 4px 24px #0006; padding: 36px; }
+    .section { margin-bottom: 48px; }
+    .mlp-diagram { display: flex; justify-content: center; align-items: flex-end; gap: 60px; margin: 32px 0; }
+    .layer { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+    .neuron { width: 36px; height: 36px; background: linear-gradient(135deg, #1de9b6 0%, #2979ff 100%); border-radius: 50%; border: 2.5px solid #fff3; box-shadow: 0 2px 8px #1de9b655; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 20px; transition: background 0.3s; }
+    .neuron:hover { background: linear-gradient(135deg, #2979ff 0%, #1de9b6 100%); }
+    .layer-label { margin-top: 8px; font-size: 15px; color: #7ee7ff; }
+    .connections { position: absolute; pointer-events: none; }
+    .vector, .matrix { display: flex; }
+    .vector .cell { min-width: 36px; height: 40px; padding: 0 18px; background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%); border: 2px solid #3de0ff; margin: 2px; display: inline-flex; align-items: center; justify-content: center; font-size: 19px; color: #eaf6ff; border-radius: 8px; transition: background 0.3s, border 0.3s; box-sizing: border-box; }
+    .matrix { flex-direction: column; }
+    .matrix-row { display: flex; }
+    .matrix .cell { min-width: 36px; height: 40px; padding: 0 18px; background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%); border: 2px solid #3de0ff; margin: 2px; display: flex; align-items: center; justify-content: center; font-size: 19px; color: #eaf6ff; border-radius: 8px; transition: background 0.3s, border 0.3s; box-sizing: border-box; }
+    .arrow { font-size: 32px; margin: 0 18px; color: #3de0ff; font-weight: bold; }
+    .step-label { text-align: center; margin: 8px 0 16px 0; color: #7ee7ff; }
+    .formula { text-align: center; font-size: 18px; color: #3de0ff; margin-bottom: 12px; font-weight: 500; }
+    .step-box .formula:first-child { color: #1de9b6; font-size: 28px; font-weight: bold; margin-bottom: 10px; text-shadow: 0 2px 12px #1de9b6cc, 0 0px 2px #fff; letter-spacing: 2px; }
+    .highlight { background: linear-gradient(135deg, #1de9b6 0%, #2979ff 100%); border-color: #1de9b6 !important; color: #fff !important; }
+    .plus { font-size: 22px; color: #3de0ff; margin: 0 6px; }
+    .equal { font-size: 22px; color: #3de0ff; margin: 0 6px; }
+    .note { color: #7ee7ff; font-size: 14px; text-align: center; margin-top: 8px; }
+    button { display: block; margin: 16px auto; padding: 8px 16px; background: linear-gradient(90deg, #1de9b6 0%, #2979ff 100%); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 17px; font-weight: bold; box-shadow: 0 2px 8px #1de9b655; transition: background 0.3s; }
+    button:hover { background: linear-gradient(90deg, #2979ff 0%, #1de9b6 100%); }
+    .animation-step { display: none; }
+    .animation-step.active { display: block; }
+    .step-box { background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%); border-radius: 16px; box-shadow: 0 2px 12px #1de9b633; border: 2px solid #3de0ff44; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>多层感知机（MLP）运算过程可视化</h1>
+    <div class="section">
+      <h2>1. 多层感知机结构图</h2>
+      <div id="mlp-structure" style="position: relative; height: 320px; width: 800px; margin: 0 auto;">
+        <canvas id="mlp-canvas" width="800" height="320" style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
+        <div id="mlp-nodes" style="position: absolute; left: 0; top: 0; width: 800px; height: 320px; z-index: 1;"></div>
+      </div>
+      <div class="note">每一层的神经元与下一层的所有神经元全连接</div>
+    </div>
+    <div class="section">
+      <h2>2. 逐元素函数计算过程</h2>
+      <div class="step-label">以隐藏层第一个神经元 h₁ 为例：</div>
+      <div class="formula">h₁ = σ(w₁₁¹·x₁ + w₁₂¹·x₂ + w₁₃¹·x₃ + b₁₁)</div>
+      <div style="display: flex; align-items: center; justify-content: center;">
+        <div class="vector" id="x-vector">
+          <div class="cell">x₁</div>
+          <div class="cell">x₂</div>
+          <div class="cell">x₃</div>
+        </div>
+        <span class="arrow">×</span>
+        <div class="vector" id="w1-vector">
+          <div class="cell">w₁₁¹</div>
+          <div class="cell">w₁₂¹</div>
+          <div class="cell">w₁₃¹</div>
+        </div>
+        <span class="arrow">+</span>
+        <div class="vector" id="b1-vector">
+          <div class="cell">b₁₁</div>
+        </div>
+        <span class="arrow">=</span>
+        <div class="vector" id="h1-vector">
+          <div class="cell highlight">h₁</div>
+        </div>
+      </div>
+      <div class="note">σ 表示激活函数（如 ReLU、Sigmoid 等）</div>
+      <div id="step1-steps" style="margin-top: 32px; display: flex; flex-direction: column; gap: 40px; align-items: center;">
+        <div class="step-box" style="background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%); border-radius: 16px; box-shadow: 0 2px 12px #1de9b633; border: 2px solid #3de0ff44; display: flex; flex-direction: column; align-items: center; min-width: 340px; max-width: 520px; padding: 32px 24px;">
+          <div class="formula">步骤 1</div>
+          <div class="formula">计算 w₁₁¹·x₁ + w₁₂¹·x₂ + w₁₃¹·x₃</div>
+          <div class="vector">
+            <div class="cell highlight">w₁₁¹·x₁</div>
+            <div class="cell highlight">w₁₂¹·x₂</div>
+            <div class="cell highlight">w₁₃¹·x₃</div>
+          </div>
+        </div>
+        <div class="step-box" style="background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%); border-radius: 16px; box-shadow: 0 2px 12px #1de9b633; border: 2px solid #3de0ff44; display: flex; flex-direction: column; align-items: center; min-width: 340px; max-width: 520px; padding: 32px 24px;">
+          <div class="formula">步骤 2</div>
+          <div class="formula">加上偏置 b₁₁</div>
+          <div class="vector">
+            <div class="cell highlight">w₁₁¹·x₁ + w₁₂¹·x₂ + w₁₃¹·x₃ + b₁₁</div>
+          </div>
+        </div>
+        <div class="step-box" style="background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%); border-radius: 16px; box-shadow: 0 2px 12px #1de9b633; border: 2px solid #3de0ff44; display: flex; flex-direction: column; align-items: center; min-width: 340px; max-width: 520px; padding: 32px 24px;">
+          <div class="formula">步骤 3</div>
+          <div class="formula">应用激活函数 σ</div>
+          <div class="vector">
+            <div class="cell highlight">h₁ = σ(w₁₁¹·x₁ + w₁₂¹·x₂ + w₁₃¹·x₃ + b₁₁)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <h2>3. 向量/矩阵计算过程</h2>
+      <div class="step-label">隐藏层整体计算：<br> <span class="formula">\( \mathbf{h} = \sigma(\mathbf{W}_1 \mathbf{x} + \mathbf{b}_1) \)</span></div>
+      <!-- 矩阵计算示意图 -->
+      <div style="display: flex; align-items: center; justify-content: center; margin: 32px 0 40px 0; gap: 24px;">
+        <!-- x 向量 -->
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <div style="font-size: 18px; color: #888; margin-bottom: 6px;">输入向量 x</div>
+          <div class="vector" style="flex-direction: column;">
+            <div class="cell">x₁</div>
+            <div class="cell">x₂</div>
+            <div class="cell">x₃</div>
+          </div>
+        </div>
+        <span class="arrow" style="font-size: 32px;">×</span>
+        <!-- W₁ 矩阵 -->
+        <div style="display: flex; flex-direction: column; align-items: flex-end;">
+          <div style="font-size: 18px; color: #888; margin-bottom: 6px;">权重矩阵 W₁</div>
+          <div class="matrix">
+            <div class="matrix-row">
+              <div class="cell">w₁₁¹</div><div class="cell">w₁₂¹</div><div class="cell">w₁₃¹</div>
+            </div>
+            <div class="matrix-row">
+              <div class="cell">w₂₁¹</div><div class="cell">w₂₂¹</div><div class="cell">w₂₃¹</div>
+            </div>
+            <div class="matrix-row">
+              <div class="cell">w₃₁¹</div><div class="cell">w₃₂¹</div><div class="cell">w₃₃¹</div>
+            </div>
+            <div class="matrix-row">
+              <div class="cell">w₄₁¹</div><div class="cell">w₄₂¹</div><div class="cell">w₄₃¹</div>
+            </div>
+          </div>
+        </div>
+        <span class="arrow" style="font-size: 32px;">+</span>
+        <!-- b₁ 向量 -->
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <div style="font-size: 18px; color: #888; margin-bottom: 6px;">偏置向量 b₁</div>
+          <div class="vector" style="flex-direction: column;">
+            <div class="cell">b₁₁</div>
+            <div class="cell">b₁₂</div>
+            <div class="cell">b₁₃</div>
+            <div class="cell">b₁₄</div>
+          </div>
+        </div>
+        <span class="arrow" style="font-size: 32px;">=</span>
+        <!-- h 向量 -->
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <div style="font-size: 18px; color: #888; margin-bottom: 6px;">隐藏层向量 h</div>
+          <div class="vector" style="flex-direction: column;">
+            <div class="cell highlight">h₁</div>
+            <div class="cell highlight">h₂</div>
+            <div class="cell highlight">h₃</div>
+            <div class="cell highlight">h₄</div>
+          </div>
+        </div>
+      </div>
+      <div id="matrix-steps" style="margin-top: 32px; display: flex; flex-direction: column; gap: 40px; align-items: center;">
+        <div class="step-box" style="background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%); border-radius: 16px; box-shadow: 0 2px 12px #1de9b633; border: 2px solid #3de0ff44; display: flex; flex-direction: column; align-items: center; min-width: 340px; max-width: 520px; padding: 32px 24px;">
+          <div class="formula" style="font-size: 22px; margin-bottom: 10px; font-weight: bold;">步骤 1: 矩阵乘法 <b>W₁𝑥</b></div>
+          <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">w₁₁¹·x₁ + w₁₂¹·x₂ + w₁₃¹·x₃</div>
+            </div>
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">w₂₁¹·x₁ + w₂₂¹·x₂ + w₂₃¹·x₃</div>
+            </div>
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">w₃₁¹·x₁ + w₃₂¹·x₂ + w₃₃¹·x₃</div>
+            </div>
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">w₄₁¹·x₁ + w₄₂¹·x₂ + w₄₃¹·x₃</div>
+            </div>
+          </div>
+        </div>
+        <div class="step-box" style="background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%); border-radius: 16px; box-shadow: 0 2px 12px #1de9b633; border: 2px solid #3de0ff44; display: flex; flex-direction: column; align-items: center; min-width: 340px; max-width: 520px; padding: 32px 24px;">
+          <div class="formula" style="font-size: 22px; margin-bottom: 10px; font-weight: bold;">步骤 2: 加上偏置向量 <b>b₁</b></div>
+          <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">w₁₁¹·x₁ + w₁₂¹·x₂ + w₁₃¹·x₃ + b₁₁</div>
+            </div>
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">w₂₁¹·x₁ + w₂₂¹·x₂ + w₂₃¹·x₃ + b₁₂</div>
+            </div>
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">w₃₁¹·x₁ + w₃₂¹·x₂ + w₃₃¹·x₃ + b₁₃</div>
+            </div>
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">w₄₁¹·x₁ + w₄₂¹·x₂ + w₄₃¹·x₃ + b₁₄</div>
+            </div>
+          </div>
+        </div>
+        <div class="step-box" style="background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%); border-radius: 16px; box-shadow: 0 2px 12px #1de9b633; border: 2px solid #3de0ff44; display: flex; flex-direction: column; align-items: center; min-width: 340px; max-width: 520px; padding: 32px 24px;">
+          <div class="formula" style="font-size: 22px; margin-bottom: 10px; font-weight: bold;">步骤 3: 应用激活函数 <b>σ</b></div>
+          <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">h₁ = σ(w₁₁¹·x₁ + w₁₂¹·x₂ + w₁₃¹·x₃ + b₁₁)</div>
+            </div>
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">h₂ = σ(w₂₁¹·x₁ + w₂₂¹·x₂ + w₂₃¹·x₃ + b₁₂)</div>
+            </div>
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">h₃ = σ(w₃₁¹·x₁ + w₃₂¹·x₂ + w₃₃¹·x₃ + b₁₃)</div>
+            </div>
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">h₄ = σ(w₄₁¹·x₁ + w₄₂¹·x₂ + w₄₃¹·x₃ + b₁₄)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="note">向量和矩阵用小方块阵列表示，便于理解整体运算</div>
+    </div>
+    <div class="section">
+      <h2>4. 输出层计算过程</h2>
+      <div class="step-label">输出层整体计算：<br> <span class="formula">\( \mathbf{y} = \sigma(\mathbf{W}_2 \mathbf{h} + \mathbf{b}_2) \)</span></div>
+      <!-- 输出层矩阵计算示意图 -->
+      <div style="display: flex; align-items: center; justify-content: center; margin: 32px 0 40px 0; gap: 24px;">
+        <!-- h 向量 -->
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <div style="font-size: 18px; color: #888; margin-bottom: 6px;">隐藏层向量 h</div>
+          <div class="vector" style="flex-direction: column;">
+            <div class="cell highlight">h₁</div>
+            <div class="cell highlight">h₂</div>
+            <div class="cell highlight">h₃</div>
+            <div class="cell highlight">h₄</div>
+          </div>
+        </div>
+        <span class="arrow" style="font-size: 32px;">×</span>
+        <!-- W₂ 矩阵 -->
+        <div style="display: flex; flex-direction: column; align-items: flex-end;">
+          <div style="font-size: 18px; color: #888; margin-bottom: 6px;">权重矩阵 W₂</div>
+          <div class="matrix">
+            <div class="matrix-row">
+              <div class="cell">w₁₁²</div><div class="cell">w₁₂²</div><div class="cell">w₁₃²</div><div class="cell">w₁₄²</div>
+            </div>
+            <div class="matrix-row">
+              <div class="cell">w₂₁²</div><div class="cell">w₂₂²</div><div class="cell">w₂₃²</div><div class="cell">w₂₄²</div>
+            </div>
+          </div>
+        </div>
+        <span class="arrow" style="font-size: 32px;">+</span>
+        <!-- b₂ 向量 -->
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <div style="font-size: 18px; color: #888; margin-bottom: 6px;">偏置向量 b₂</div>
+          <div class="vector" style="flex-direction: column;">
+            <div class="cell">b₂₁</div>
+            <div class="cell">b₂₂</div>
+          </div>
+        </div>
+        <span class="arrow" style="font-size: 32px;">=</span>
+        <!-- y 向量 -->
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <div style="font-size: 18px; color: #888; margin-bottom: 6px;">输出层向量 y</div>
+          <div class="vector" style="flex-direction: column;">
+            <div class="cell highlight">y₁</div>
+            <div class="cell highlight">y₂</div>
+          </div>
+        </div>
+      </div>
+      <!-- 输出层详细分步 -->
+      <div id="output-steps" style="margin-top: 32px; display: flex; flex-direction: column; gap: 40px; align-items: center;">
+        <div class="step-box" style="background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%); border-radius: 16px; box-shadow: 0 2px 12px #1de9b633; border: 2px solid #3de0ff44; display: flex; flex-direction: column; align-items: center; min-width: 340px; max-width: 520px; padding: 32px 24px;">
+          <div class="formula" style="font-size: 28px; font-weight: bold; color: #1de9b6; text-shadow: 0 2px 12px #1de9b6cc, 0 0px 2px #fff; letter-spacing: 2px;">步骤 1</div>
+          <div class="formula" style="font-size: 20px; color: #3de0ff; margin-bottom: 18px; font-weight: 500;">矩阵乘法 W₂h</div>
+          <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">w₁₁²·h₁ + w₁₂²·h₂ + w₁₃²·h₃ + w₁₄²·h₄</div>
+            </div>
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">w₂₁²·h₁ + w₂₂²·h₂ + w₂₃²·h₃ + w₂₄²·h₄</div>
+            </div>
+          </div>
+        </div>
+        <div class="step-box" style="background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%); border-radius: 16px; box-shadow: 0 2px 12px #1de9b633; border: 2px solid #3de0ff44; display: flex; flex-direction: column; align-items: center; min-width: 340px; max-width: 520px; padding: 32px 24px;">
+          <div class="formula" style="font-size: 28px; font-weight: bold; color: #1de9b6; text-shadow: 0 2px 12px #1de9b6cc, 0 0px 2px #fff; letter-spacing: 2px;">步骤 2</div>
+          <div class="formula" style="font-size: 20px; color: #3de0ff; margin-bottom: 18px; font-weight: 500;">加上偏置向量 b₂</div>
+          <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">w₁₁²·h₁ + w₁₂²·h₂ + w₁₃²·h₃ + w₁₄²·h₄ + b₂₁</div>
+            </div>
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">w₂₁²·h₁ + w₂₂²·h₂ + w₂₃²·h₃ + w₂₄²·h₄ + b₂₂</div>
+            </div>
+          </div>
+        </div>
+        <div class="step-box" style="background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%); border-radius: 16px; box-shadow: 0 2px 12px #1de9b633; border: 2px solid #3de0ff44; display: flex; flex-direction: column; align-items: center; min-width: 340px; max-width: 520px; padding: 32px 24px;">
+          <div class="formula" style="font-size: 28px; font-weight: bold; color: #1de9b6; text-shadow: 0 2px 12px #1de9b6cc, 0 0px 2px #fff; letter-spacing: 2px;">步骤 3</div>
+          <div class="formula" style="font-size: 20px; color: #3de0ff; margin-bottom: 18px; font-weight: 500;">应用激活函数 σ</div>
+          <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">y₁ = σ(w₁₁²·h₁ + w₁₂²·h₂ + w₁₃²·h₃ + w₁₄²·h₄ + b₂₁)</div>
+            </div>
+            <div class="vector" style="margin-bottom: 0;">
+              <div class="cell highlight">y₂ = σ(w₂₁²·h₁ + w₂₂²·h₂ + w₂₃²·h₃ + w₂₄²·h₄ + b₂₂)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // 神经元参数
+    const mlpLayers = [
+      { x: 80, count: 3, color: '#ffb347', label: '输入层' },
+      { x: 350, count: 4, color: '#4f8cff', label: '隐藏层' },
+      { x: 650, count: 2, color: '#43d19e', label: '输出层' }
+    ];
+    const neuronRadius = 16;
+    const structureHeight = 320;
+    // 生成神经元节点
+    function renderMLPNodes() {
+      const container = document.getElementById('mlp-nodes');
+      container.innerHTML = '';
+      mlpLayers.forEach((layer, li) => {
+        const gap = (structureHeight - layer.count * neuronRadius * 2) / (layer.count + 1);
+        for (let i = 0; i < layer.count; i++) {
+          const y = gap * (i + 1) + neuronRadius + i * neuronRadius * 2;
+          const neuron = document.createElement('div');
+          neuron.className = 'neuron';
+          neuron.style.background = layer.color;
+          neuron.style.position = 'absolute';
+          neuron.style.left = (layer.x) + 'px';
+          neuron.style.top = (y - neuronRadius) + 'px';
+          neuron.style.zIndex = 2;
+          neuron.innerText = li === 0 ? `x${i+1}` : (li === 1 ? `h${i+1}` : `y${i+1}`);
+          container.appendChild(neuron);
+        }
+        // 层标签
+        const label = document.createElement('div');
+        label.className = 'layer-label';
+        label.style.position = 'absolute';
+        label.style.left = (layer.x - 20) + 'px';
+        label.style.top = (structureHeight - 30) + 'px';
+        label.style.width = '60px';
+        label.style.textAlign = 'center';
+        label.innerText = layer.label;
+        label.style.zIndex = 2;
+        container.appendChild(label);
+      });
+    }
+    // 绘制MLP结构的连线（与神经元圆点严格对齐）
+    function drawMLPLines() {
+      const canvas = document.getElementById('mlp-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // 神经元中心坐标
+      const inputX = 80 + 16, inputY = [55+16, 145+16, 240+16];
+      const hiddenX = 350 + 16, hiddenY = [40+16, 110+16, 180+16, 250+16];
+      const outputX = 650 + 16, outputY = [90+16, 190+16];
+      // 画普通连线
+      ctx.strokeStyle = '#b6c2d9';
+      ctx.lineWidth = 2;
+      for (let l = 0; l < 2; l++) {
+        const fromX = l === 0 ? inputX : hiddenX;
+        const fromY = l === 0 ? inputY : hiddenY;
+        const toX = l === 0 ? hiddenX : outputX;
+        const toY = l === 0 ? hiddenY : outputY;
+        for (let i = 0; i < fromY.length; i++) {
+          for (let j = 0; j < toY.length; j++) {
+            // 高亮x1/x2/x3到h1的三条线
+            if (l === 0 && j === 0 && i < 3) continue;
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY[i]);
+            ctx.lineTo(toX, toY[j]);
+            ctx.stroke();
+          }
+        }
+      }
+      // 高亮x1/x2/x3到h1的三条线
+      ctx.strokeStyle = '#1de9b6';
+      ctx.lineWidth = 4.5;
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(inputX, inputY[i]);
+        ctx.lineTo(hiddenX, hiddenY[0]);
+        ctx.stroke();
+      }
+    }
+    // 初始化结构图
+    function renderMLPStructure() {
+      renderMLPNodes();
+      drawMLPLines();
+      // 在canvas上标注h1的权重
+      const canvas = document.getElementById('mlp-canvas');
+      const ctx = canvas.getContext('2d');
+      // 神经元中心坐标（与HTML绝对定位一致）
+      const inputX = 80 + 18, inputY = [40+18, 140+18, 240+18];
+      const hiddenX = 350 + 18, hiddenY = [10+18, 90+18, 170+18, 250+18];
+      // x1/x2/x3 -> h1
+      const weights = ['w₁₁¹', 'w₁₂¹', 'w₁₃¹'];
+      ctx.font = 'bold 18px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let i = 0; i < 3; i++) {
+        // 计算中点
+        const x0 = inputX, y0 = inputY[i];
+        const x1 = hiddenX, y1 = hiddenY[0];
+        const mx = x0 + (x1 - x0) * 0.55;
+        const my = y0 + (y1 - y0) * 0.55;
+        // 绘制高亮色块
+        ctx.save();
+        ctx.beginPath();
+        ctx.strokeStyle = '#1de9b6';
+        ctx.fillStyle = '#232b3a';
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = '#1de9b6';
+        ctx.shadowBlur = 8;
+        ctx.roundRect(mx-28, my-16, 56, 32, 8);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+        // 绘制权重文字
+        ctx.save();
+        ctx.fillStyle = '#1de9b6';
+        ctx.font = 'bold 18px Arial';
+        ctx.shadowColor = '#000';
+        ctx.shadowBlur = 2;
+        ctx.fillText(weights[i], mx, my);
+        ctx.restore();
+      }
+    }
+    window.onload = function() {
+      renderMLPStructure();
+    };
+  </script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</body>
+</html> 

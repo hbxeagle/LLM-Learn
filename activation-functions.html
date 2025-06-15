@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>激活函数可视化</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1de9b6',
+                        secondary: '#2979ff',
+                        accent: '#3de0ff',
+                        warning: '#ff5252',
+                        danger: '#ff5252',
+                        dark: '#181f2a',
+                        'dark-2': '#232b3a',
+                        'light-1': '#eaf6ff',
+                        'light-2': '#3de0ff44',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+                background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+                border: 2px solid #3de0ff44;
+            }
+            .transition-custom {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .bg-gradient-blue {
+                background: linear-gradient(135deg, #1de9b6 0%, #2979ff 100%);
+            }
+            .text-gradient {
+                background-clip: text;
+                -webkit-background-clip: text;
+                color: transparent;
+                background-image: linear-gradient(90deg, #1de9b6, #2979ff);
+            }
+        }
+    </style>
+</head>
+<body class="bg-dark font-inter text-light-1 min-h-screen flex flex-col">
+    <!-- 导航栏 -->
+    <header class="bg-dark-2 shadow-sm sticky top-0 z-50 border-b border-light-2">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-line-chart text-primary text-2xl"></i>
+                <h1 class="text-xl font-bold text-light-1">激活函数可视化</h1>
+            </div>
+            <nav class="hidden md:flex items-center space-x-6">
+                <a href="#" class="text-light-2 hover:text-primary transition-custom font-medium">首页</a>
+                <a href="#functions" class="text-light-2 hover:text-primary transition-custom font-medium">函数</a>
+                <a href="#about" class="text-light-2 hover:text-primary transition-custom font-medium">关于</a>
+            </nav>
+            <button class="md:hidden text-light-2 text-xl">
+                <i class="fa fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- 主内容 -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <!-- 介绍卡片 -->
+        <section class="mb-12 text-center max-w-3xl mx-auto">
+            <h2 class="text-[clamp(2rem,5vw,3rem)] font-bold mb-4 text-gradient">神经网络激活函数</h2>
+            <p class="text-light-2 text-lg mb-8">激活函数给神经网络引入非线性特性，使其能够学习复杂的模式和函数关系。探索不同激活函数的数学特性和图形形状。</p>
+            <div class="flex flex-wrap justify-center gap-4">
+                <div class="p-4 rounded-lg card-shadow w-32">
+                    <div class="text-primary text-2xl mb-2"><i class="fa fa-calculator"></i></div>
+                    <p class="font-medium text-light-1">数学公式</p>
+                </div>
+                <div class="p-4 rounded-lg card-shadow w-32">
+                    <div class="text-secondary text-2xl mb-2"><i class="fa fa-area-chart"></i></div>
+                    <p class="font-medium text-light-1">函数图像</p>
+                </div>
+                <div class="p-4 rounded-lg card-shadow w-32">
+                    <div class="text-accent text-2xl mb-2"><i class="fa fa-lightbulb-o"></i></div>
+                    <p class="font-medium text-light-1">核心特点</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 函数选择和展示区域 -->
+        <section id="functions" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- 左侧：函数列表 -->
+            <div class="lg:col-span-1">
+                <div class="rounded-xl card-shadow p-6 h-full">
+                    <h3 class="text-xl font-bold mb-6 flex items-center text-light-1">
+                        <i class="fa fa-list-ul text-primary mr-2"></i> 激活函数列表
+                    </h3>
+                    <div class="space-y-3">
+                        <button id="btn-sigmoid" class="function-btn w-full text-left p-4 rounded-lg bg-primary/10 text-primary border-l-4 border-primary transition-custom flex items-center">
+                            <span class="w-8 h-8 rounded-full bg-primary text-dark flex items-center justify-center mr-3">1</span>
+                            <div>
+                                <h4 class="font-semibold text-light-1">Sigmoid</h4>
+                                <p class="text-sm text-light-1">0到1区间</p>
+                            </div>
+                        </button>
+                        <button id="btn-tanh" class="function-btn w-full text-left p-4 rounded-lg hover:bg-dark-2 transition-custom flex items-center">
+                            <span class="w-8 h-8 rounded-full bg-light-2 text-light-1 flex items-center justify-center mr-3">2</span>
+                            <div>
+                                <h4 class="font-semibold text-light-1">Tanh</h4>
+                                <p class="text-sm text-light-1">-1到1区间</p>
+                            </div>
+                        </button>
+                        <button id="btn-relu" class="function-btn w-full text-left p-4 rounded-lg hover:bg-gray-100 transition-custom flex items-center">
+                            <span class="w-8 h-8 rounded-full bg-gray-200 text-dark flex items-center justify-center mr-3">3</span>
+                            <div>
+                                <h4 class="font-semibold text-light-1">ReLU</h4>
+                                <p class="text-sm text-light-1">修正线性单元</p>
+                            </div>
+                        </button>
+                        <button id="btn-leaky-relu" class="function-btn w-full text-left p-4 rounded-lg hover:bg-gray-100 transition-custom flex items-center">
+                            <span class="w-8 h-8 rounded-full bg-gray-200 text-dark flex items-center justify-center mr-3">4</span>
+                            <div>
+                                <h4 class="font-semibold text-light-1">Leaky ReLU</h4>
+                                <p class="text-sm text-light-1">带泄漏的ReLU</p>
+                            </div>
+                        </button>
+                        <button id="btn-prelu" class="function-btn w-full text-left p-4 rounded-lg hover:bg-gray-100 transition-custom flex items-center">
+                            <span class="w-8 h-8 rounded-full bg-gray-200 text-dark flex items-center justify-center mr-3">5</span>
+                            <div>
+                                <h4 class="font-semibold text-light-1">PReLU</h4>
+                                <p class="text-sm text-light-1">参数化ReLU</p>
+                            </div>
+                        </button>
+                        <button id="btn-elu" class="function-btn w-full text-left p-4 rounded-lg hover:bg-gray-100 transition-custom flex items-center">
+                            <span class="w-8 h-8 rounded-full bg-gray-200 text-dark flex items-center justify-center mr-3">6</span>
+                            <div>
+                                <h4 class="font-semibold text-light-1">ELU</h4>
+                                <p class="text-sm text-light-1">指数线性单元</p>
+                            </div>
+                        </button>
+                        <button id="btn-swish" class="function-btn w-full text-left p-4 rounded-lg hover:bg-gray-100 transition-custom flex items-center">
+                            <span class="w-8 h-8 rounded-full bg-gray-200 text-dark flex items-center justify-center mr-3">7</span>
+                            <div>
+                                <h4 class="font-semibold text-light-1">Swish</h4>
+                                <p class="text-sm text-light-1">自门控激活函数</p>
+                            </div>
+                        </button>
+                        <button id="btn-softmax" class="function-btn w-full text-left p-4 rounded-lg hover:bg-dark-2 transition-custom flex items-center">
+                            <span class="w-8 h-8 rounded-full bg-light-2 text-light-1 flex items-center justify-center mr-3">8</span>
+                            <div>
+                                <h4 class="font-semibold text-light-1">Softmax</h4>
+                                <p class="text-sm text-light-1">多类别概率分布</p>
+                            </div>
+                        </button>
+                        <button id="btn-sign" class="function-btn w-full text-left p-4 rounded-lg hover:bg-dark-2 transition-custom flex items-center">
+                            <span class="w-8 h-8 rounded-full bg-light-2 text-light-1 flex items-center justify-center mr-3">9</span>
+                            <div>
+                                <h4 class="font-semibold text-light-1">Sign</h4>
+                                <p class="text-sm text-light-1">符号函数</p>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：函数详情和图像 -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl card-shadow p-6 h-full">
+                    <div id="function-header" class="mb-6">
+                        <h3 id="function-title" class="text-2xl font-bold mb-2">Sigmoid 函数</h3>
+                        <div class="flex flex-wrap items-center gap-3 mb-4">
+                            <span id="function-formula" class="bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
+                                f(x) = 1 / (1 + e^(-x))
+                            </span>
+                            <span id="function-range" class="bg-light-1 text-dark-2 px-4 py-2 rounded-full text-sm">
+                                输出范围: (0, 1)
+                            </span>
+                        </div>
+                        <p id="function-description" class="text-light-1">
+                            Sigmoid函数将输入值映射到0到1的区间，常用于二分类问题的输出层，提供概率解释。不过，它存在梯度消失问题，且输出均值不为零。
+                        </p>
+                    </div>
+
+                    <!-- 参数调整 (部分函数适用) -->
+                    <div id="parameter-controls" class="mb-6 hidden">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <label id="param-label" class="block text-sm font-medium text-light-1">α 参数 (斜率)</label>
+                                <div class="flex items-center">
+                                    <input id="param-slider" type="range" min="0.01" max="0.2" step="0.01" value="0.01" 
+                                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary">
+                                    <span id="param-value" class="ml-2 text-sm font-medium w-12 text-right">0.01</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 图像展示 -->
+                    <div class="relative h-[400px] mb-6">
+                        <canvas id="function-chart"></canvas>
+                    </div>
+
+                    <!-- 特性列表 -->
+                    <div id="function-properties" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-light-1 p-4 rounded-lg">
+                            <h4 class="font-semibold mb-2 flex items-center text-dark-2">
+                                <i class="fa fa-check-circle text-accent mr-2"></i> 优点
+                            </h4>
+                            <ul id="function-pros" class="text-dark-2 space-y-1 text-sm list-disc list-inside">
+                                <li>输出在(0,1)之间，适合二分类概率解释</li>
+                                <li>平滑可导，便于使用梯度下降法</li>
+                            </ul>
+                        </div>
+                        <div class="bg-light-1 p-4 rounded-lg">
+                            <h4 class="font-semibold mb-2 flex items-center text-dark-2">
+                                <i class="fa fa-times-circle text-danger mr-2"></i> 缺点
+                            </h4>
+                            <ul id="function-cons" class="text-dark-2 space-y-1 text-sm list-disc list-inside">
+                                <li>存在梯度消失问题</li>
+                                <li>输出均值不为零，导致梯度更新低效</li>
+                                <li>计算包含指数运算，计算成本较高</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 关于部分 -->
+        <section id="about" class="mt-16 mb-8">
+            <div class="bg-white rounded-xl card-shadow p-8">
+                <h3 class="text-2xl font-bold mb-6 text-center">关于激活函数</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h4 class="text-xl font-semibold mb-4">什么是激活函数？</h4>
+                        <p class="text-light-1 mb-4">
+                            激活函数是神经网络的重要组成部分，它决定了神经元的输出。线性模型只能学习线性关系，而激活函数引入了非线性因素，使神经网络能够学习复杂的非线性函数。
+                        </p>
+                        <p class="text-light-1">
+                            激活函数的选择对模型的性能有重要影响。不同的激活函数适用于不同的场景，理解它们的特性有助于设计更有效的神经网络。
+                        </p>
+                    </div>
+                    <div>
+                        <h4 class="text-xl font-semibold mb-4">如何选择激活函数？</h4>
+                        <ul class="text-light-1 space-y-3">
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-primary mt-1 mr-2"></i>
+                                <span>隐藏层通常优先选择ReLU或其变体（Leaky ReLU、ELU等），以避免梯度消失问题</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-primary mt-1 mr-2"></i>
+                                <span>二分类问题的输出层可使用Sigmoid函数</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-primary mt-1 mr-2"></i>
+                                <span>多分类问题的输出层通常使用Softmax函数</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-primary mt-1 mr-2"></i>
+                                <span>循环神经网络（RNN）中常用Tanh函数</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-primary mt-1 mr-2"></i>
+                                <span>深层网络可尝试Swish等自门控激活函数</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark-2 text-light-1 py-8 border-t border-light-2">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4">激活函数可视化</h3>
+                    <p class="text-light-2">
+                        一个交互式工具，帮助理解神经网络中不同激活函数的特性和形状。
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">快速链接</h3>
+                    <ul class="space-y-2 text-light-2">
+                        <li><a href="#" class="hover:text-primary transition-custom">首页</a></li>
+                        <li><a href="#functions" class="hover:text-primary transition-custom">激活函数</a></li>
+                        <li><a href="#about" class="hover:text-primary transition-custom">关于</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">相关资源</h3>
+                    <ul class="space-y-2 text-light-2">
+                        <li><a href="https://en.wikipedia.org/wiki/Activation_function" target="_blank" class="hover:text-primary transition-custom">维基百科 - 激活函数</a></li>
+                        <li><a href="https://www.tensorflow.org/api_docs/python/tf/keras/activations" target="_blank" class="hover:text-primary transition-custom">TensorFlow 激活函数</a></li>
+                        <li><a href="https://pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity" target="_blank" class="hover:text-primary transition-custom">PyTorch 激活函数</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-light-2 mt-8 pt-8 text-center text-light-2">
+                <p>&copy; 2025 激活函数可视化工具 | 由豆包编程助手构建</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 激活函数定义
+        const activationFunctions = {
+            sigmoid: {
+                formula: 'f(x) = 1 / (1 + e^(-x))',
+                range: '输出范围: (0, 1)',
+                description: 'Sigmoid函数将输入值映射到0到1的区间，常用于二分类问题的输出层，提供概率解释。不过，它存在梯度消失问题，且输出均值不为零。',
+                calculate: (x) => 1 / (1 + Math.exp(-x)),
+                pros: [
+                    '输出在(0,1)之间，适合二分类概率解释',
+                    '平滑可导，便于使用梯度下降法'
+                ],
+                cons: [
+                    '存在梯度消失问题',
+                    '输出均值不为零，导致梯度更新低效',
+                    '计算包含指数运算，计算成本较高'
+                ],
+                color: '#1de9b6',
+                hasParam: false
+            },
+            tanh: {
+                formula: 'f(x) = tanh(x) = (e^x - e^(-x)) / (e^x + e^(-x))',
+                range: '输出范围: (-1, 1)',
+                description: 'Tanh函数将输入值映射到-1到1的区间，解决了Sigmoid函数输出非零中心的问题，但仍存在梯度消失问题。',
+                calculate: (x) => Math.tanh(x),
+                pros: [
+                    '输出在(-1,1)之间，均值为0',
+                    '平滑可导，便于使用梯度下降法'
+                ],
+                cons: [
+                    '仍然存在梯度消失问题',
+                    '计算包含指数运算，计算成本较高'
+                ],
+                color: '#2979ff',
+                hasParam: false
+            },
+            relu: {
+                formula: 'f(x) = max(0, x)',
+                range: '输出范围: [0, +∞)',
+                description: 'ReLU(Rectified Linear Unit)是最常用的激活函数之一，它在x>0时直接输出x，在x≤0时输出0，计算简单且能有效缓解梯度消失问题。',
+                calculate: (x) => Math.max(0, x),
+                pros: [
+                    '计算简单，提高运算效率',
+                    '有效缓解梯度消失问题',
+                    '使网络具有稀疏性，有助于学习有效特征'
+                ],
+                cons: [
+                    '存在"神经元死亡"问题，某些神经元可能永远不会被激活',
+                    '输出均值大于0',
+                    '在x<0时梯度为0'
+                ],
+                color: '#3de0ff',
+                hasParam: false
+            },
+            'leaky-relu': {
+                formula: 'f(x) = max(αx, x), α=0.01',
+                range: '输出范围: (-∞, +∞)',
+                description: 'Leaky ReLU是ReLU的改进版本，在x<0时保留一个很小的梯度(通常为0.01)，避免了"神经元死亡"问题。',
+                calculate: (x, alpha = 0.01) => Math.max(alpha * x, x),
+                pros: [
+                    '解决了ReLU的"神经元死亡"问题',
+                    '计算简单，效率高'
+                ],
+                cons: [
+                    '输出不是稀疏的',
+                    'α值通常需要手动设置，缺乏自适应性'
+                ],
+                color: '#ff5252',
+                hasParam: true,
+                paramLabel: 'α 参数 (斜率)',
+                paramMin: 0.01,
+                paramMax: 0.2,
+                paramStep: 0.01,
+                paramDefault: 0.01
+            },
+            prelu: {
+                formula: 'f(x) = max(αx, x), α是可学习参数',
+                range: '输出范围: (-∞, +∞)',
+                description: 'PReLU(Parametric ReLU)是Leaky ReLU的扩展，其中负斜率α是可学习的参数，不同神经元可以有不同的α值。',
+                calculate: (x, alpha = 0.05) => Math.max(alpha * x, x),
+                pros: [
+                    '解决了ReLU的"神经元死亡"问题',
+                    'α值可学习，适应性更强'
+                ],
+                cons: [
+                    '增加了模型参数和计算复杂度',
+                    '在小数据集上可能过拟合'
+                ],
+                color: '#ff5252',
+                hasParam: true,
+                paramLabel: 'α 参数 (斜率)',
+                paramMin: 0.01,
+                paramMax: 0.2,
+                paramStep: 0.01,
+                paramDefault: 0.05
+            },
+            elu: {
+                formula: 'f(x) = x, x≥0; f(x) = α(e^x-1), x<0',
+                range: '输出范围: (-α, +∞)',
+                description: 'ELU(Exponential Linear Unit)结合了ReLU和sigmoid的优点，在x<0时使用指数函数，使输出均值接近0，同时缓解梯度消失问题。',
+                calculate: (x, alpha = 1) => x >= 0 ? x : alpha * (Math.exp(x) - 1),
+                pros: [
+                    '输出均值接近0，加速学习',
+                    '在x<0时具有非零梯度，避免"神经元死亡"',
+                    '缓解梯度消失问题'
+                ],
+                cons: [
+                    '计算复杂度较高，包含指数运算',
+                    '在x>0时仍可能存在梯度饱和问题'
+                ],
+                color: '#3de0ff',
+                hasParam: true,
+                paramLabel: 'α 参数',
+                paramMin: 0.1,
+                paramMax: 2,
+                paramStep: 0.1,
+                paramDefault: 1
+            },
+            swish: {
+                formula: 'f(x) = x * sigmoid(x) = x / (1 + e^(-x))',
+                range: '输出范围: (-∞, +∞)',
+                description: 'Swish是一种自门控激活函数，由Google团队在2017年提出，在深层网络中性能通常优于ReLU。',
+                calculate: (x) => x / (1 + Math.exp(-x)),
+                pros: [
+                    '平滑且非单调，有助于信息更好地流动',
+                    '在深层网络中性能优于ReLU',
+                    '自门控机制，自适应调整输出'
+                ],
+                cons: [
+                    '计算复杂度高于ReLU',
+                    '对于浅层网络，优势可能不明显'
+                ],
+                color: '#1de9b6',
+                hasParam: false
+            },
+            softmax: {
+                formula: 'f(x_i) = e^(x_i) / Σ(e^(x_j))',
+                range: '输出范围: (0, 1)，总和为1',
+                description: 'Softmax函数将多个输入转换为概率分布，使所有输出值之和为1，常用于多分类问题的输出层。',
+                calculate: (x, allInputs) => {
+                    const expValues = allInputs.map(val => Math.exp(val));
+                    const sum = expValues.reduce((acc, val) => acc + val, 0);
+                    return Math.exp(x) / sum;
+                },
+                pros: [
+                    '将输出转换为概率分布，适合多分类问题',
+                    '所有输出值之和为1，便于理解和比较'
+                ],
+                cons: [
+                    '存在梯度消失问题',
+                    '计算复杂度高，需要计算所有输入的指数值'
+                ],
+                color: '#2979ff',
+                hasParam: false
+            },
+            sign: {
+                formula: 'f(x) = sign(x) = { 1, x > 0; 0, x = 0; -1, x < 0 }',
+                range: '输出范围: {-1, 0, 1}',
+                description: 'Sign函数（符号函数）将输入x映射为-1、0或1，常用于感知机等二分类模型的激活函数，输出为类别标签。',
+                calculate: (x) => x > 0 ? 1 : (x < 0 ? -1 : 0),
+                pros: [
+                    '计算极其简单，速度快',
+                    '适合二分类的硬判决'
+                ],
+                cons: [
+                    '不可导，无法用于基于梯度的优化',
+                    '信息损失大，不能反映输入的幅度'
+                ],
+                color: '#00bcd4',
+                hasParam: false
+            }
+        };
+
+        // 创建图表
+        let functionChart;
+        let currentFunction = 'sigmoid';
+        let currentParam = 0.01;
+
+        // 初始化图表
+        function initChart() {
+            const ctx = document.getElementById('function-chart').getContext('2d');
+            
+            // 销毁已存在的图表
+            if (functionChart) {
+                functionChart.destroy();
+            }
+            
+            // 生成数据点
+            if (currentFunction === 'sign') {
+                // sign函数特殊处理：三段
+                const left = [];
+                for (let x = -5; x < 0; x += 0.1) left.push({x, y: -1});
+                const right = [];
+                for (let x = 0.1; x <= 5; x += 0.1) right.push({x, y: 1});
+                const center = [{x: 0, y: 0}];
+                functionChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        datasets: [
+                            {
+                                label: 'Sign (x<0)',
+                                data: left,
+                                borderColor: activationFunctions['sign'].color,
+                                backgroundColor: 'transparent',
+                                borderWidth: 3,
+                                pointRadius: 0,
+                                fill: false,
+                                tension: 0,
+                                stepped: false
+                            },
+                            {
+                                label: 'Sign (x=0)',
+                                data: center,
+                                borderColor: activationFunctions['sign'].color,
+                                backgroundColor: activationFunctions['sign'].color,
+                                borderWidth: 0,
+                                pointRadius: 6,
+                                type: 'scatter',
+                                fill: false,
+                                showLine: false
+                            },
+                            {
+                                label: 'Sign (x>0)',
+                                data: right,
+                                borderColor: activationFunctions['sign'].color,
+                                backgroundColor: 'transparent',
+                                borderWidth: 3,
+                                pointRadius: 0,
+                                fill: false,
+                                tension: 0,
+                                stepped: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 500,
+                            easing: 'easeOutQuart'
+                        },
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                position: 'center',
+                                title: {
+                                    display: true,
+                                    text: '输入 (x)',
+                                    font: {
+                                        weight: 'bold'
+                                    }
+                                },
+                                min: -5,
+                                max: 5,
+                                grid: {
+                                    color: '#f0f0f0'
+                                }
+                            },
+                            y: {
+                                type: 'linear',
+                                position: 'center',
+                                title: {
+                                    display: true,
+                                    text: '输出 (f(x))',
+                                    font: {
+                                        weight: 'bold'
+                                    }
+                                },
+                                min: -2,
+                                max: 2,
+                                grid: {
+                                    color: '#f0f0f0'
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        return `f(${context.parsed.x.toFixed(2)}) = ${context.parsed.y.toFixed(4)}`;
+                                    }
+                                }
+                            },
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+            const data = generateFunctionData(currentFunction);
+            
+            // 创建图表
+            functionChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: getFunctionLabel(currentFunction),
+                        data: data,
+                        borderColor: activationFunctions[currentFunction].color,
+                        backgroundColor: `${activationFunctions[currentFunction].color}20`,
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        fill: true,
+                        tension: 0.4,
+                        stepped: currentFunction === 'sign' ? true : false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 500,
+                        easing: 'easeOutQuart'
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'center',
+                            title: {
+                                display: true,
+                                text: '输入 (x)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            min: -5,
+                            max: 5,
+                            grid: {
+                                color: '#f0f0f0'
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            position: 'center',
+                            title: {
+                                display: true,
+                                text: '输出 (f(x))',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            min: -2,
+                            max: 2,
+                            grid: {
+                                color: '#f0f0f0'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `f(${context.parsed.x.toFixed(2)}) = ${context.parsed.y.toFixed(4)}`;
+                                }
+                            }
+                        },
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // 生成函数数据点
+        function generateFunctionData(funcName) {
+            const func = activationFunctions[funcName];
+            const points = [];
+            
+            if (funcName === 'softmax') {
+                // Softmax需要多个输入值
+                const allInputs = [-3, -2, -1, 0, 1, 2, 3];
+                for (let x of allInputs) {
+                    points.push({
+                        x: x,
+                        y: func.calculate(x, allInputs)
+                    });
+                }
+            } else if (funcName === 'sign') {
+                // sign函数阶梯处理
+                for (let x = -5; x < 0; x += 0.1) {
+                    points.push({ x, y: -1 });
+                }
+                points.push({ x: 0, y: 0 });
+                for (let x = 0.1; x <= 5; x += 0.1) {
+                    points.push({ x, y: 1 });
+                }
+            } else {
+                // 其他函数
+                for (let x = -5; x <= 5; x += 0.1) {
+                    points.push({
+                        x: x,
+                        y: func.calculate(x, currentParam)
+                    });
+                }
+            }
+            
+            return points;
+        }
+
+        // 获取函数标签
+        function getFunctionLabel(funcName) {
+            const labels = {
+                sigmoid: 'Sigmoid',
+                tanh: 'Tanh',
+                relu: 'ReLU',
+                'leaky-relu': `Leaky ReLU (α=${currentParam})`,
+                prelu: `PReLU (α=${currentParam})`,
+                elu: `ELU (α=${currentParam})`,
+                swish: 'Swish',
+                softmax: 'Softmax',
+                sign: 'Sign'
+            };
+            
+            return labels[funcName] || funcName;
+        }
+
+        // 更新函数显示
+        function updateFunctionDisplay(funcName) {
+            const func = activationFunctions[funcName];
+            
+            // 更新标题和描述
+            document.getElementById('function-title').textContent = funcName === 'leaky-relu' ? 'Leaky ReLU' : 
+                                                                     funcName.charAt(0).toUpperCase() + funcName.slice(1);
+            document.getElementById('function-formula').textContent = func.formula;
+            document.getElementById('function-range').textContent = func.range;
+            document.getElementById('function-description').textContent = func.description;
+            
+            // 更新优缺点列表
+            updateList('function-pros', func.pros);
+            updateList('function-cons', func.cons);
+            
+            // 更新参数控制
+            const paramControls = document.getElementById('parameter-controls');
+            if (func.hasParam) {
+                paramControls.classList.remove('hidden');
+                document.getElementById('param-label').textContent = func.paramLabel;
+                const slider = document.getElementById('param-slider');
+                slider.min = func.paramMin;
+                slider.max = func.paramMax;
+                slider.step = func.paramStep;
+                slider.value = func.paramDefault;
+                document.getElementById('param-value').textContent = func.paramDefault.toFixed(2);
+                currentParam = func.paramDefault;
+            } else {
+                paramControls.classList.add('hidden');
+            }
+            
+            // 更新按钮样式
+            document.querySelectorAll('.function-btn').forEach(btn => {
+                btn.classList.remove('bg-primary/10', 'text-primary', 'border-l-4', 'border-primary');
+                btn.classList.add('hover:bg-gray-100');
+                btn.querySelector('span').classList.remove('bg-primary', 'text-white');
+                btn.querySelector('span').classList.add('bg-gray-200', 'text-dark');
+            });
+            
+            const activeBtn = document.getElementById(`btn-${funcName}`);
+            activeBtn.classList.add('bg-primary/10', 'text-primary', 'border-l-4', 'border-primary');
+            activeBtn.classList.remove('hover:bg-gray-100');
+            activeBtn.querySelector('span').classList.remove('bg-gray-200', 'text-dark');
+            activeBtn.querySelector('span').classList.add('bg-primary', 'text-white');
+            
+            // 更新图表
+            currentFunction = funcName;
+            initChart();
+        }
+
+        // 更新列表内容
+        function updateList(elementId, items) {
+            const listElement = document.getElementById(elementId);
+            listElement.innerHTML = '';
+            
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                listElement.appendChild(li);
+            });
+        }
+
+        // 初始化事件监听
+        function initEventListeners() {
+            // 函数按钮点击事件
+            document.querySelectorAll('.function-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const funcName = this.id.replace('btn-', '');
+                    updateFunctionDisplay(funcName);
+                });
+            });
+            
+            // 参数滑块事件
+            document.getElementById('param-slider').addEventListener('input', function() {
+                currentParam = parseFloat(this.value);
+                document.getElementById('param-value').textContent = currentParam.toFixed(2);
+                document.getElementById('function-title').textContent = 
+                    currentFunction === 'leaky-relu' ? `Leaky ReLU (α=${currentParam})` :
+                    currentFunction === 'prelu' ? `PReLU (α=${currentParam})` :
+                    currentFunction === 'elu' ? `ELU (α=${currentParam})` :
+                    currentFunction.charAt(0).toUpperCase() + currentFunction.slice(1);
+                initChart();
+            });
+            
+            // 平滑滚动
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    if (targetId === '#') return;
+                    
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        window.scrollTo({
+                            top: targetElement.offsetTop - 80,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initChart();
+            initEventListeners();
+        });
+    </script>
+</body>
+</html>
+    

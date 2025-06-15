@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>线性回归可视化演示</title>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+            background: #181f2a;
+            margin: 0;
+            padding: 0;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #eaf6ff;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            background: #232b3a;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px #0006;
+            padding: 36px;
+        }
+        .step {
+            margin: 30px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border-radius: 16px;
+            box-shadow: 0 2px 12px #1de9b633;
+            border: 2px solid #3de0ff44;
+        }
+        .explanation {
+            margin: 10px 0;
+            padding: 10px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border-radius: 8px;
+            color: #7ee7ff;
+        }
+        .formula {
+            text-align: center;
+            font-size: 18px;
+            color: #3de0ff;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+        .intro {
+            color: #eaf6ff;
+            text-align: center;
+            font-size: 1.3em;
+            margin-bottom: 18px;
+        }
+        .plot-container {
+            width: 100%;
+            height: 400px;
+            margin: 20px 0;
+            background: #232b3a;
+            border-radius: 8px;
+            border: 2px solid #3de0ff44;
+        }
+        .parameter-display {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .parameter-box {
+            padding: 15px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border: 2px solid #3de0ff;
+            border-radius: 8px;
+            color: #eaf6ff;
+            text-align: center;
+        }
+        .parameter-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #1de9b6;
+        }
+        button {
+            display: block;
+            margin: 16px auto;
+            padding: 8px 16px;
+            background: linear-gradient(90deg, #1de9b6 0%, #2979ff 100%);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 17px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px #1de9b655;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: linear-gradient(90deg, #2979ff 0%, #1de9b6 100%);
+        }
+        .loss-display {
+            text-align: center;
+            color: #eaf6ff;
+            font-size: 1.2em;
+            margin: 20px 0;
+        }
+        .loss-value {
+            color: #1de9b6;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>线性回归可视化演示</h1>
+        <p class="intro">通过可视化方式展示线性回归的训练过程 - 预测吃鱼喜好程度</p>
+
+        <div class="step">
+            <h2>步骤1：数据准备</h2>
+            <div class="explanation">
+                <p>我们收集了一些关于吃鱼的数据。每个数据点包含每天吃鱼的数量(x)和喜欢吃鱼的程度(y)。</p>
+            </div>
+            <div class="plot-container" id="data-plot"></div>
+        </div>
+
+        <div class="step">
+            <h2>步骤2：模型初始化</h2>
+            <div class="explanation">
+                <p>线性回归模型的形式为：y = wx + b，其中w是权重，b是偏置项。</p>
+            </div>
+            <div class="formula">y = wx + b</div>
+            <div class="parameter-display">
+                <div class="parameter-box">
+                    <div>权重 (w)</div>
+                    <div class="parameter-value" id="weight-value">0.00</div>
+                </div>
+                <div class="parameter-box">
+                    <div>偏置 (b)</div>
+                    <div class="parameter-value" id="bias-value">0.00</div>
+                </div>
+            </div>
+            <div class="plot-container" id="initial-model-plot"></div>
+        </div>
+
+        <div class="step">
+            <h2>步骤3：损失函数计算</h2>
+            <div class="explanation">
+                <p>使用均方误差(MSE)作为损失函数，计算预测值与真实值之间的差距。</p>
+            </div>
+            <div class="formula">MSE = (1/n) * Σ(y_pred - y_true)²</div>
+            <div class="loss-display">
+                当前损失值：<span class="loss-value" id="loss-value">0.00</span>
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>步骤4：参数更新</h2>
+            <div class="explanation">
+                <p>使用梯度下降法更新模型参数，最小化损失函数。</p>
+            </div>
+            <div class="formula">
+                w = w - α * ∂L/∂w<br>
+                b = b - α * ∂L/∂b
+            </div>
+            <button onclick="trainStep()">执行一步训练</button>
+            <div class="plot-container" id="training-plot"></div>
+        </div>
+
+        <div class="step">
+            <h2>步骤5：训练过程</h2>
+            <div class="explanation">
+                <p>通过多次迭代训练，观察模型参数和损失值的变化。</p>
+            </div>
+            <button onclick="trainMultipleSteps()">执行多步训练</button>
+            <div class="plot-container" id="final-plot"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        // 生成示例数据
+        function generateData(n = 50) {
+            const data = [];
+            for (let i = 0; i < n; i++) {
+                const x = Math.random() * 5; // 每天吃鱼的数量（0-5条）
+                const y = 2 * x + 1 + (Math.random() - 0.5) * 2; // 喜欢吃鱼的程度（0-10分）
+                data.push({x, y});
+            }
+            return data;
+        }
+
+        // 初始化数据
+        const data = generateData();
+        let w = 0;
+        let b = 0;
+        const learningRate = 0.01;
+
+        // 绘制数据点
+        function plotData(containerId, showLine = false) {
+            const trace1 = {
+                x: data.map(d => d.x),
+                y: data.map(d => d.y),
+                mode: 'markers',
+                type: 'scatter',
+                name: '数据点',
+                marker: {
+                    color: '#1de9b6',
+                    size: 8
+                }
+            };
+
+            const traces = [trace1];
+
+            if (showLine) {
+                const xRange = [0, 10];
+                const trace2 = {
+                    x: xRange,
+                    y: xRange.map(x => w * x + b),
+                    mode: 'lines',
+                    type: 'scatter',
+                    name: '预测线',
+                    line: {
+                        color: '#2979ff',
+                        width: 2
+                    }
+                };
+                traces.push(trace2);
+            }
+
+            const layout = {
+                title: '吃鱼数据分布',
+                paper_bgcolor: '#232b3a',
+                plot_bgcolor: '#232b3a',
+                font: {
+                    color: '#eaf6ff'
+                },
+                xaxis: {
+                    title: '每天吃鱼的数量（条）',
+                    gridcolor: '#3de0ff44'
+                },
+                yaxis: {
+                    title: '喜欢吃鱼的程度（分）',
+                    gridcolor: '#3de0ff44'
+                }
+            };
+
+            Plotly.newPlot(containerId, traces, layout);
+        }
+
+        // 计算损失
+        function computeLoss() {
+            let loss = 0;
+            for (const point of data) {
+                const yPred = w * point.x + b;
+                loss += Math.pow(yPred - point.y, 2);
+            }
+            return loss / data.length;
+        }
+
+        // 更新参数
+        function updateParameters() {
+            let dw = 0;
+            let db = 0;
+            
+            for (const point of data) {
+                const yPred = w * point.x + b;
+                dw += (yPred - point.y) * point.x;
+                db += yPred - point.y;
+            }
+            
+            dw /= data.length;
+            db /= data.length;
+            
+            w -= learningRate * dw;
+            b -= learningRate * db;
+            
+            document.getElementById('weight-value').textContent = w.toFixed(2);
+            document.getElementById('bias-value').textContent = b.toFixed(2);
+            document.getElementById('loss-value').textContent = computeLoss().toFixed(2);
+        }
+
+        // 训练步骤
+        function trainStep() {
+            updateParameters();
+            plotData('training-plot', true);
+        }
+
+        // 多步训练
+        function trainMultipleSteps() {
+            for (let i = 0; i < 100; i++) {
+                updateParameters();
+            }
+            plotData('final-plot', true);
+        }
+
+        // 初始化显示
+        plotData('data-plot');
+        plotData('initial-model-plot', true);
+    </script>
+</body>
+</html> 

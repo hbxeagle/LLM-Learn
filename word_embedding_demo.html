@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>NNLM可视化演示</title>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+            background: #181f2a;
+            margin: 0;
+            padding: 0;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #eaf6ff;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            background: #232b3a;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px #0006;
+            padding: 36px;
+        }
+        .step {
+            margin: 30px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border-radius: 16px;
+            box-shadow: 0 2px 12px #1de9b633;
+            border: 2px solid #3de0ff44;
+        }
+        .word-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .word-box {
+            border: 2px solid #3de0ff44;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            color: #eaf6ff;
+            font-size: 1.4em;
+            font-weight: bold;
+        }
+        .vector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .vector-value {
+            width: 36px;
+            height: 40px;
+            padding: 0 18px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border: 2px solid #3de0ff;
+            margin: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 19px;
+            color: #eaf6ff;
+            border-radius: 8px;
+            transition: background 0.3s, border 0.3s;
+        }
+        .one-hot-value {
+            width: 36px;
+            height: 40px;
+            padding: 0 18px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border: 2px solid #1de9b6;
+            margin: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 19px;
+            color: #eaf6ff;
+            border-radius: 8px;
+            transition: background 0.3s, border 0.3s;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border-radius: 8px;
+            border: 2px solid #3de0ff44;
+            color: #eaf6ff;
+            font-size: 1.2em;
+        }
+        button {
+            display: block;
+            margin: 16px auto;
+            padding: 8px 16px;
+            background: linear-gradient(90deg, #1de9b6 0%, #2979ff 100%);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 17px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px #1de9b655;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: linear-gradient(90deg, #2979ff 0%, #1de9b6 100%);
+        }
+        .explanation {
+            margin: 10px 0;
+            padding: 10px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border-radius: 8px;
+            color: #7ee7ff;
+        }
+        .step-label {
+            text-align: center;
+            margin: 8px 0 16px 0;
+            color: #7ee7ff;
+        }
+        .formula {
+            text-align: center;
+            font-size: 18px;
+            color: #3de0ff;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+        .highlight {
+            background: linear-gradient(135deg, #1de9b6 0%, #2979ff 100%);
+            border-color: #1de9b6 !important;
+            color: #fff !important;
+            width: auto;
+        }
+        .intro {
+            color: #eaf6ff;
+            text-align: center;
+            font-size: 1.3em;
+            margin-bottom: 18px;
+        }
+        .embedding-matrix-table {
+            border-collapse: collapse;
+            margin: 0 auto;
+        }
+        .embedding-matrix-table td, .embedding-matrix-table th {
+            border: 2px solid #3de0ff;
+            padding: 8px 14px;
+            text-align: center;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            color: #eaf6ff;
+            font-size: 1em;
+            border-radius: 6px;
+        }
+        .embedding-matrix-table th {
+            background: linear-gradient(135deg, #1de9b6 0%, #2979ff 100%);
+            color: #fff;
+        }
+        .softmax-result {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+        }
+        .softmax-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .softmax-word {
+            color: #7ee7ff;
+            font-size: 1em;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="step">
+            <h2>NNLM结构总览</h2>
+            <div class="explanation">
+                <p>NNLM（神经网络语言模型）结构包括：输入层（独热编码）→ Embedding层 → 隐藏层（全连接+激活）→ 输出层（softmax）。</p>
+            </div>
+            <div style="display: flex; justify-content: center; align-items: center; margin: 30px 0;">
+                <div style="display: flex; align-items: center; gap: 32px;">
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div class="vector-value highlight">输入</div>
+                        <div style="color:#7ee7ff; margin-top: 6px;">独热编码</div>
+                    </div>
+                    <span style="font-size: 2em; color: #3de0ff;">→</span>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div class="vector-value highlight">Embedding</div>
+                        <div style="color:#7ee7ff; margin-top: 6px;">查表</div>
+                    </div>
+                    <span style="font-size: 2em; color: #3de0ff;">→</span>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div class="vector-value highlight">隐藏层</div>
+                        <div style="color:#7ee7ff; margin-top: 6px;">全连接+激活</div>
+                    </div>
+                    <span style="font-size: 2em; color: #3de0ff;">→</span>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div class="vector-value highlight">输出层</div>
+                        <div style="color:#7ee7ff; margin-top: 6px;">softmax</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <h1>NNLM可视化演示</h1>
+        <p class="intro">以"猫喜欢吃"为例，展示NNLM的完整计算过程</p>
+        
+        <div class="step">
+            <h2>步骤1：独热编码（One-Hot Encoding）</h2>
+            <div class="explanation">
+                <p>首先，我们需要将词语转换为独热编码。独热编码是一种将分类变量转换为数值向量的方法，其中只有一个位置为1，其余位置为0。</p>
+            </div>
+            <div class="word-grid" style="grid-template-columns: repeat(3, 1fr);">
+                <div class="word-box">
+                    <h3>猫</h3>
+                    <div class="vector" id="cat-one-hot">
+                        <!-- 独热编码将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+                <div class="word-box">
+                    <h3>喜欢</h3>
+                    <div class="vector" id="like-one-hot">
+                        <!-- 独热编码将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+                <div class="word-box">
+                    <h3>吃</h3>
+                    <div class="vector" id="eat-one-hot">
+                        <!-- 独热编码将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>步骤2：初始Embedding权重矩阵</h2>
+            <div class="explanation">
+                <p>Embedding权重矩阵是一个 <span id="vocab-size"></span> × <span id="embed-size"></span> 的矩阵，每一行对应一个词的词嵌入向量。独热编码与权重矩阵相乘即可查找得到词嵌入。<br>本例词汇表：<b>猫、喜欢、吃、鱼、罐头、睡觉</b></p>
+            </div>
+            <div style="display: flex; justify-content: center;">
+                <div id="embedding-matrix" style="margin: 10px 0;"></div>
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>步骤3：词嵌入向量（Word Embedding）</h2>
+            <div class="explanation">
+                <p>通过神经网络训练，我们将独热编码转换为低维度的词嵌入向量。这些向量能够捕捉词语之间的语义关系。</p>
+            </div>
+            <div class="word-grid" style="grid-template-columns: repeat(3, 1fr);">
+                <div class="word-box">
+                    <h3>猫</h3>
+                    <div class="vector" id="cat-vector">
+                        <!-- 向量值将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+                <div class="word-box">
+                    <h3>喜欢</h3>
+                    <div class="vector" id="like-vector">
+                        <!-- 向量值将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+                <div class="word-box">
+                    <h3>吃</h3>
+                    <div class="vector" id="eat-vector">
+                        <!-- 向量值将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- <button onclick="calculateSimilarity()">计算相似度</button>
+        
+        <div class="result" id="result">
+            点击按钮查看计算结果
+        </div> -->
+
+
+
+    <!-- NNLM结构与运算过程可视化 -->
+    <div class="step">
+        <h2>步骤4：隐藏层运算过程</h2>
+        <div class="explanation">
+            <p>将所有词的embedding向量拼接后，输入到隐藏层，经过权重矩阵和激活函数得到隐藏层输出。</p>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 24px; margin: 24px 0;">
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div style="color: #7ee7ff; margin-bottom: 6px;">拼接后的输入向量</div>
+                <div class="vector" id="concat-embed">
+                    <!-- 词嵌入拼接向量 -->
+                </div>
+            </div>
+            <span style="font-size: 2em; color: #3de0ff;">×</span>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div style="color: #7ee7ff; margin-bottom: 6px;">隐藏层权重矩阵 W<sub>h</sub></div>
+                <div id="hidden-matrix"></div>
+            </div>
+            <span style="font-size: 2em; color: #3de0ff;">+</span>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div style="color: #7ee7ff; margin-bottom: 6px;">偏置 b<sub>h</sub></div>
+                <div class="vector" id="hidden-bias"></div>
+            </div>
+            <span style="font-size: 2em; color: #3de0ff;">=</span>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div style="color: #7ee7ff; margin-bottom: 6px;">隐藏层输出</div>
+                <div class="vector" id="hidden-output"></div>
+            </div>
+        </div>
+        <div class="explanation">隐藏层输出 = 激活函数(拼接embedding × W<sub>h</sub> + b<sub>h</sub>)</div>
+    </div>
+
+    <div class="step">
+        <h2>步骤5：输出层（softmax）运算过程</h2>
+        <div class="explanation">
+            <p>隐藏层输出经过输出层权重和softmax，得到对下一个词的概率预测。</p>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 24px; margin: 24px 0;">
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div style="color: #7ee7ff; margin-bottom: 6px;">隐藏层输出</div>
+                <div class="vector" id="hidden-output2"></div>
+            </div>
+            <span style="font-size: 2em; color: #3de0ff;">×</span>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div style="color: #7ee7ff; margin-bottom: 6px;">输出层权重矩阵 W<sub>o</sub></div>
+                <div id="output-matrix"></div>
+            </div>
+            <span style="font-size: 2em; color: #3de0ff;">+</span>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div style="color: #7ee7ff; margin-bottom: 6px;">偏置 b<sub>o</sub></div>
+                <div class="vector" id="output-bias"></div>
+            </div>
+            <span style="font-size: 2em; color: #3de0ff;">=</span>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div style="color: #7ee7ff; margin-bottom: 6px;">输出层logits</div>
+                <div class="vector" id="output-logits"></div>
+            </div>
+        </div>
+        <div class="explanation">softmax(输出层logits) → 预测概率分布</div>
+        <div style="display: flex; justify-content: center; margin-top: 18px;">
+            <div style="color: #7ee7ff; margin-right: 12px;">softmax结果：</div>
+            <div class="softmax-result" id="output-softmax"></div>
+        </div>
+    </div>
+
+    </div>
+
+    <script>
+        // 生成独热编码
+        function generateOneHot(index, size) {
+            return Array(size).fill(0).map((_, i) => i === index ? 1 : 0);
+        }
+
+        // 生成随机向量
+        function generateRandomVector(size) {
+            return Array.from({length: size}, () => +(Math.random() * 2 - 1).toFixed(2));
+        }
+
+        // 计算余弦相似度
+        function cosineSimilarity(vec1, vec2) {
+            const dotProduct = vec1.reduce((sum, val, i) => sum + val * vec2[i], 0);
+            const magnitude1 = Math.sqrt(vec1.reduce((sum, val) => sum + val * val, 0));
+            const magnitude2 = Math.sqrt(vec2.reduce((sum, val) => sum + val * val, 0));
+            return +(dotProduct / (magnitude1 * magnitude2)).toFixed(3);
+        }
+
+        // 显示向量
+        function displayVector(vector, elementId, isOneHot = false) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = '';
+            vector.forEach(value => {
+                const div = document.createElement('div');
+                div.className = isOneHot ? 'one-hot-value' : 'vector-value';
+                div.textContent = value;
+                container.appendChild(div);
+            });
+        }
+
+        // 生成初始embedding权重矩阵
+        function generateEmbeddingMatrix(vocabSize, embeddingSize) {
+            // 生成 vocabSize 行 embeddingSize 列的二维数组
+            return Array.from({length: vocabSize}, () =>
+                Array.from({length: embeddingSize}, () => +(Math.random() * 2 - 1).toFixed(2))
+            );
+        }
+
+        // 显示embedding矩阵
+        function displayEmbeddingMatrix(matrix, rowLabels, colLabels) {
+            let html = '<table class="embedding-matrix-table">';
+            html += '<tr><th></th>';
+            for (let j = 0; j < colLabels.length; j++) {
+                html += `<th>${colLabels[j]}</th>`;
+            }
+            html += '</tr>';
+            for (let i = 0; i < matrix.length; i++) {
+                html += `<tr><th>${rowLabels[i]}</th>`;
+                for (let j = 0; j < matrix[i].length; j++) {
+                    html += `<td>${matrix[i][j]}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</table>';
+            document.getElementById('embedding-matrix').innerHTML = html;
+        }
+
+        // 新词表
+        const vocabLabels = ['猫', '喜欢', '吃', '鱼', '罐头', '睡觉'];
+        const vocabSize = vocabLabels.length;
+        // 输入序列
+        const inputIdx = [0, 1, 2]; // "猫" "喜欢" "吃"
+        // 只展示输入的独热编码
+        const catOneHot = generateOneHot(inputIdx[0], vocabSize);
+        const likeOneHot = generateOneHot(inputIdx[1], vocabSize);
+        const eatOneHot = generateOneHot(inputIdx[2], vocabSize);
+        displayVector(catOneHot, 'cat-one-hot', true);
+        displayVector(likeOneHot, 'like-one-hot', true);
+        displayVector(eatOneHot, 'eat-one-hot', true);
+
+        // 初始化embedding权重矩阵
+        const embeddingSize = 5; // 词嵌入维度
+        const embeddingMatrix = generateEmbeddingMatrix(vocabSize, embeddingSize);
+        const embedLabels = Array.from({length: embeddingSize}, (_, i) => `e${i+1}`);
+        displayEmbeddingMatrix(embeddingMatrix, vocabLabels, embedLabels);
+        document.getElementById('vocab-size').textContent = vocabSize;
+        document.getElementById('embed-size').textContent = embeddingSize;
+
+        // 只展示输入的词嵌入向量
+        const catVector = embeddingMatrix[inputIdx[0]];
+        const likeVector = embeddingMatrix[inputIdx[1]];
+        const eatVector = embeddingMatrix[inputIdx[2]];
+
+        // 显示词嵌入向量
+        displayVector(catVector, 'cat-vector');
+        displayVector(likeVector, 'like-vector');
+        displayVector(eatVector, 'eat-vector');
+
+        // 计算相似度
+        function calculateSimilarity() {
+            const catLikeSimilarity = cosineSimilarity(catVector, likeVector);
+            const catEatSimilarity = cosineSimilarity(catVector, eatVector);
+            const catFishSimilarity = cosineSimilarity(catVector, embeddingMatrix[3]);
+            const likeEatSimilarity = cosineSimilarity(likeVector, eatVector);
+            const likeFishSimilarity = cosineSimilarity(likeVector, embeddingMatrix[3]);
+            const eatFishSimilarity = cosineSimilarity(eatVector, embeddingMatrix[3]);
+
+            const result = document.getElementById('result');
+            result.innerHTML = `
+                <h3>相似度计算结果：</h3>
+                <p>猫-喜欢相似度：${catLikeSimilarity}</p>
+                <p>猫-吃相似度：${catEatSimilarity}</p>
+                <p>猫-鱼相似度：${catFishSimilarity}</p>
+                <p>喜欢-吃相似度：${likeEatSimilarity}</p>
+                <p>喜欢-鱼相似度：${likeFishSimilarity}</p>
+                <p>吃-鱼相似度：${eatFishSimilarity}</p>
+                <div class="explanation">
+                    <p>注意：由于我们使用的是随机生成的向量，每次刷新页面或点击按钮时，相似度都会改变。在实际应用中，词嵌入向量是通过训练得到的，能够更好地反映词语之间的语义关系。</p>
+                </div>
+            `;
+        }
+
+        // NNLM结构和运算过程可视化
+        // 拼接输入的embedding向量
+        const concatEmbed = [...catVector, ...likeVector, ...eatVector];
+        function displayConcatEmbed() {
+            displayVector(concatEmbed, 'concat-embed');
+        }
+        displayConcatEmbed();
+
+        // 隐藏层参数
+        const hiddenSize = 6;
+        function generateMatrix(rows, cols) {
+            return Array.from({length: rows}, () =>
+                Array.from({length: cols}, () => +(Math.random() * 2 - 1).toFixed(2))
+            );
+        }
+        function displayMatrix(matrix, elementId) {
+            let html = '<table class="embedding-matrix-table">';
+            for (let i = 0; i < matrix.length; i++) {
+                html += '<tr>';
+                for (let j = 0; j < matrix[i].length; j++) {
+                    html += `<td>${matrix[i][j]}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</table>';
+            document.getElementById(elementId).innerHTML = html;
+        }
+        // 隐藏层权重和偏置
+        const hiddenMatrix = generateMatrix(concatEmbed.length, hiddenSize);
+        const hiddenBias = Array.from({length: hiddenSize}, () => +(Math.random() * 2 - 1).toFixed(2));
+        displayMatrix(hiddenMatrix, 'hidden-matrix');
+        displayVector(hiddenBias, 'hidden-bias');
+
+        // 隐藏层输出（线性+激活，激活用ReLU）
+        function relu(x) { return Math.max(0, x); }
+        function matVecMul(matrix, vec) {
+            // matrix: n×m, vec: n
+            const m = matrix[0].length;
+            const result = Array(m).fill(0);
+            for (let j = 0; j < m; j++) {
+                for (let i = 0; i < matrix.length; i++) {
+                    result[j] += matrix[i][j] * vec[i];
+                }
+            }
+            return result;
+        }
+        const hiddenLinear = matVecMul(hiddenMatrix, concatEmbed).map((v, i) => v + Number(hiddenBias[i]));
+        const hiddenOutput = hiddenLinear.map(relu).map(v => +v.toFixed(2));
+        displayVector(hiddenOutput, 'hidden-output');
+        displayVector(hiddenOutput, 'hidden-output2');
+
+        // 输出层参数
+        const outputMatrix = generateMatrix(hiddenSize, vocabSize);
+        const outputBias = Array.from({length: vocabSize}, () => +(Math.random() * 2 - 1).toFixed(2));
+        displayMatrix(outputMatrix, 'output-matrix');
+        displayVector(outputBias, 'output-bias');
+
+        // 输出层logits
+        function matVecMul2(matrix, vec) {
+            // matrix: m×n, vec: m
+            const n = matrix[0].length;
+            const result = Array(n).fill(0);
+            for (let j = 0; j < n; j++) {
+                for (let i = 0; i < matrix.length; i++) {
+                    result[j] += matrix[i][j] * vec[i];
+                }
+            }
+            return result;
+        }
+        const outputLogits = matVecMul2(outputMatrix, hiddenOutput).map((v, i) => v + Number(outputBias[i]));
+        const outputLogitsFixed = outputLogits.map(v => +v.toFixed(2));
+        displayVector(outputLogitsFixed, 'output-logits');
+
+        // softmax
+        function softmax(arr) {
+            const max = Math.max(...arr);
+            const expArr = arr.map(x => Math.exp(x - max));
+            const sum = expArr.reduce((a, b) => a + b, 0);
+            return expArr.map(x => +(x / sum).toFixed(3));
+        }
+        const softmaxResult = softmax(outputLogits);
+        // 展示带词的softmax
+        function displaySoftmaxWithWords(values, words, elementId) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = '';
+            for (let i = 0; i < values.length; i++) {
+                const col = document.createElement('div');
+                col.className = 'softmax-col';
+                const valDiv = document.createElement('div');
+                valDiv.className = 'vector-value';
+                valDiv.textContent = values[i];
+                const wordDiv = document.createElement('div');
+                wordDiv.className = 'softmax-word';
+                wordDiv.textContent = words[i];
+                col.appendChild(valDiv);
+                col.appendChild(wordDiv);
+                container.appendChild(col);
+            }
+        }
+        displaySoftmaxWithWords(softmaxResult, vocabLabels, 'output-softmax');
+    </script>
+</body>
+</html> 

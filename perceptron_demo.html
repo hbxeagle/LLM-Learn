@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>一元感知机可视化演示</title>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+            background: #181f2a;
+            margin: 0;
+            padding: 0;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #eaf6ff;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            background: #232b3a;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px #0006;
+            padding: 36px;
+        }
+        .step {
+            margin: 30px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border-radius: 16px;
+            box-shadow: 0 2px 12px #1de9b633;
+            border: 2px solid #3de0ff44;
+        }
+        .explanation {
+            margin: 10px 0;
+            padding: 10px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border-radius: 8px;
+            color: #7ee7ff;
+        }
+        .formula {
+            text-align: center;
+            font-size: 18px;
+            color: #3de0ff;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+        .intro {
+            color: #eaf6ff;
+            text-align: center;
+            font-size: 1.3em;
+            margin-bottom: 18px;
+        }
+        .plot-container {
+            width: 100%;
+            height: 400px;
+            margin: 20px 0;
+            background: #232b3a;
+            border-radius: 8px;
+            border: 2px solid #3de0ff44;
+        }
+        .parameter-display {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .parameter-box {
+            padding: 15px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border: 2px solid #3de0ff;
+            border-radius: 8px;
+            color: #eaf6ff;
+            text-align: center;
+        }
+        .parameter-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #1de9b6;
+        }
+        button {
+            display: block;
+            margin: 16px auto;
+            padding: 8px 16px;
+            background: linear-gradient(90deg, #1de9b6 0%, #2979ff 100%);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 17px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px #1de9b655;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: linear-gradient(90deg, #2979ff 0%, #1de9b6 100%);
+        }
+        .accuracy-display {
+            text-align: center;
+            color: #eaf6ff;
+            font-size: 1.2em;
+            margin: 20px 0;
+        }
+        .accuracy-value {
+            color: #1de9b6;
+            font-weight: bold;
+        }
+        .activation-display {
+            text-align: center;
+            color: #eaf6ff;
+            font-size: 1.2em;
+            margin: 20px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border-radius: 8px;
+            border: 2px solid #ff5252;
+        }
+        .activation-value {
+            color: #ff5252;
+            font-weight: bold;
+        }
+        .activation-formula {
+            text-align: center;
+            font-size: 18px;
+            color: #ff5252;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+        .perceptron-diagram {
+            width: 100%;
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border-radius: 8px;
+            border: 2px solid #3de0ff44;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>一元感知机可视化演示</h1>
+        <p class="intro">通过可视化方式展示一元感知机的训练过程 - 预测吃鱼喜好程度</p>
+
+        <div class="step">
+            <h2>步骤1：数据准备</h2>
+            <div class="explanation">
+                <p>我们收集了一些关于吃鱼的数据。每个数据点包含每天吃鱼的数量(x)和喜欢吃鱼的程度(y)。</p>
+            </div>
+            <div class="plot-container" id="data-plot"></div>
+        </div>
+
+        <div class="step">
+            <h2>步骤2：模型初始化</h2>
+            <div class="explanation">
+                <p>一元感知机模型的形式为：f(x) = sign(wx + b)，其中w是权重，b是偏置项。</p>
+            </div>
+            <div class="formula">f(x) = sign(wx + b)</div>
+            
+            <div class="parameter-display">
+                <div class="parameter-box">
+                    <div>权重 (w)</div>
+                    <div class="parameter-value" id="weight-value">0.00</div>
+                </div>
+                <div class="parameter-box">
+                    <div>偏置 (b)</div>
+                    <div class="parameter-value" id="bias-value">0.00</div>
+                </div>
+            </div>
+            <div class="plot-container" id="initial-model-plot"></div>
+        </div>
+
+        <div class="step">
+            <h2>步骤3：输入输出关系</h2>
+            <div class="explanation">
+                <p>展示输入x（吃鱼数量）和输出y（喜欢程度）之间的关系，以及感知机的决策过程。</p>
+            </div>
+            <div class="plot-container" id="io-plot"></div>
+            <div class="parameter-display">
+                <div class="parameter-box">
+                    <div>当前输入 x</div>
+                    <div class="parameter-value" id="current-x">0.00</div>
+                </div>
+                <div class="parameter-box">
+                    <div>线性输出 wx + b</div>
+                    <div class="parameter-value" id="linear-output">0.00</div>
+                </div>
+                <div class="parameter-box">
+                    <div>最终输出 y</div>
+                    <div class="parameter-value" id="final-output">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>步骤4：激活函数</h2>
+            <div class="explanation">
+                <p>使用sign函数作为激活函数，将线性输出转换为二分类结果。</p>
+            </div>
+            <div class="activation-formula">
+                sign(x) = {
+                    <br>1, if x > 0
+                    <br>-1, if x ≤ 0
+                }
+            </div>
+            <div class="activation-display">
+                当前输入值：<span class="activation-value" id="input-value">0.00</span>
+                <br>
+                激活后输出：<span class="activation-value" id="activation-value">0</span>
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>步骤5：预测与更新</h2>
+            <div class="explanation">
+                <p>对于每个误分类的点，更新权重和偏置：w = w + η * y * x, b = b + η * y</p>
+            </div>
+            <div class="formula">
+                w = w + η * y * x<br>
+                b = b + η * y
+            </div>
+            <div class="accuracy-display">
+                当前准确率：<span class="accuracy-value" id="accuracy-value">0.00%</span>
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>步骤6：单步训练</h2>
+            <div class="explanation">
+                <p>执行一步训练，更新模型参数并观察决策边界的变化。</p>
+            </div>
+            <button onclick="trainStep()">执行一步训练</button>
+            <div class="plot-container" id="training-plot"></div>
+        </div>
+
+        <div class="step">
+            <h2>步骤7：完整训练</h2>
+            <div class="explanation">
+                <p>通过多次迭代训练，直到所有点都被正确分类或达到最大迭代次数。</p>
+            </div>
+            <button onclick="trainMultipleSteps()">执行完整训练</button>
+            <div class="plot-container" id="final-plot"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        // 生成示例数据
+        function generateData(n = 50) {
+            const data = [];
+            for (let i = 0; i < n; i++) {
+                const x = Math.random() * 5; // 每天吃鱼的数量（0-5条）
+                const y = 2 * x + 1 + (Math.random() - 0.5) * 2; // 喜欢吃鱼的程度（0-10分）
+                // 将连续值转换为二分类标签
+                const label = y > 5 ? 1 : -1; // 如果喜欢程度大于5，则为正类
+                data.push({x, y, label});
+            }
+            return data;
+        }
+
+        // 初始化数据
+        const data = generateData();
+        let w = 0;  // 权重
+        let b = 0;  // 偏置
+        const learningRate = 0.1;
+
+        // 绘制数据点和决策边界
+        function plotData(containerId, showLine = false) {
+            const trace1 = {
+                x: data.filter(d => d.label === 1).map(d => d.x),
+                y: data.filter(d => d.label === 1).map(d => d.y),
+                mode: 'markers',
+                type: 'scatter',
+                name: '喜欢鱼',
+                marker: {
+                    color: '#ff5252',
+                    size: 8
+                }
+            };
+
+            const trace2 = {
+                x: data.filter(d => d.label === -1).map(d => d.x),
+                y: data.filter(d => d.label === -1).map(d => d.y),
+                mode: 'markers',
+                type: 'scatter',
+                name: '不喜欢鱼',
+                marker: {
+                    color: '#2979ff',
+                    size: 8
+                }
+            };
+
+            const traces = [trace1, trace2];
+
+            if (showLine) {
+                const xRange = [0, 5];
+                const trace3 = {
+                    x: xRange,
+                    y: xRange.map(x => 5), // 决策边界在y=5处
+                    mode: 'lines',
+                    type: 'scatter',
+                    name: '决策边界',
+                    line: {
+                        color: '#1de9b6',
+                        width: 2,
+                        dash: 'dash'
+                    }
+                };
+                traces.push(trace3);
+            }
+
+            const layout = {
+                title: '吃鱼喜好分类',
+                paper_bgcolor: '#232b3a',
+                plot_bgcolor: '#232b3a',
+                font: {
+                    color: '#eaf6ff'
+                },
+                xaxis: {
+                    title: '每天吃鱼的数量（条）',
+                    gridcolor: '#3de0ff44',
+                    range: [0, 5]
+                },
+                yaxis: {
+                    title: '喜欢吃鱼的程度（分）',
+                    gridcolor: '#3de0ff44',
+                    range: [0, 10]
+                }
+            };
+
+            Plotly.newPlot(containerId, traces, layout);
+        }
+
+        // 计算准确率
+        function computeAccuracy() {
+            let correct = 0;
+            for (const point of data) {
+                const prediction = Math.sign(w * point.x + b);
+                if (prediction === point.label) {
+                    correct++;
+                }
+            }
+            return (correct / data.length) * 100;
+        }
+
+        // 绘制输入输出关系图
+        function plotIO(containerId) {
+            const xRange = Array.from({length: 100}, (_, i) => i * 0.05); // 0到5的100个点
+            
+            // 原始数据点
+            const trace1 = {
+                x: data.map(d => d.x),
+                y: data.map(d => d.y),
+                mode: 'markers',
+                type: 'scatter',
+                name: '数据点',
+                marker: {
+                    color: '#ff5252',
+                    size: 8
+                }
+            };
+
+            // 线性输出
+            const trace2 = {
+                x: xRange,
+                y: xRange.map(x => w * x + b),
+                mode: 'lines',
+                type: 'scatter',
+                name: '线性输出 wx + b',
+                line: {
+                    color: '#2979ff',
+                    width: 2
+                }
+            };
+
+            // 决策边界
+            const trace3 = {
+                x: xRange,
+                y: xRange.map(x => 5), // y=5的决策边界
+                mode: 'lines',
+                type: 'scatter',
+                name: '决策边界',
+                line: {
+                    color: '#1de9b6',
+                    width: 2,
+                    dash: 'dash'
+                }
+            };
+
+            // 激活函数输出
+            const trace4 = {
+                x: xRange,
+                y: xRange.map(x => Math.sign(w * x + b)),
+                mode: 'lines',
+                type: 'scatter',
+                name: '激活函数输出',
+                line: {
+                    color: '#ff9800',
+                    width: 2
+                }
+            };
+
+            const layout = {
+                title: '输入输出关系',
+                paper_bgcolor: '#232b3a',
+                plot_bgcolor: '#232b3a',
+                font: {
+                    color: '#eaf6ff'
+                },
+                xaxis: {
+                    title: '输入 x（吃鱼数量）',
+                    gridcolor: '#3de0ff44',
+                    range: [0, 5]
+                },
+                yaxis: {
+                    title: '输出 y',
+                    gridcolor: '#3de0ff44',
+                    range: [-2, 10]
+                }
+            };
+
+            Plotly.newPlot(containerId, [trace1, trace2, trace3, trace4], layout);
+        }
+
+        // 更新参数
+        function updateParameters() {
+            let misclassified = false;
+            let lastInput = 0;
+            let lastActivation = 0;
+            let lastX = 0;
+            let lastLinearOutput = 0;
+            
+            for (const point of data) {
+                const input = w * point.x + b;
+                const prediction = Math.sign(input);
+                
+                if (prediction !== point.label) {
+                    w += learningRate * point.label * point.x;
+                    b += learningRate * point.label;
+                    misclassified = true;
+                    lastInput = input;
+                    lastActivation = prediction;
+                    lastX = point.x;
+                    lastLinearOutput = input;
+                }
+            }
+            
+            document.getElementById('weight-value').textContent = w.toFixed(2);
+            document.getElementById('bias-value').textContent = b.toFixed(2);
+            document.getElementById('accuracy-value').textContent = computeAccuracy().toFixed(2) + '%';
+            document.getElementById('input-value').textContent = lastInput.toFixed(2);
+            document.getElementById('activation-value').textContent = lastActivation;
+            document.getElementById('current-x').textContent = lastX.toFixed(2);
+            document.getElementById('linear-output').textContent = lastLinearOutput.toFixed(2);
+            document.getElementById('final-output').textContent = lastActivation;
+            
+            // 更新输入输出关系图
+            plotIO('io-plot');
+            
+            return misclassified;
+        }
+
+        // 训练步骤
+        function trainStep() {
+            updateParameters();
+            plotData('training-plot', true);
+        }
+
+        // 多步训练
+        function trainMultipleSteps() {
+            let maxIterations = 100;
+            let iteration = 0;
+            
+            while (iteration < maxIterations) {
+                const misclassified = updateParameters();
+                if (!misclassified) break;
+                iteration++;
+            }
+            
+            plotData('final-plot', true);
+        }
+
+        // 初始化显示
+        plotData('data-plot');
+        plotData('initial-model-plot', true);
+        plotIO('io-plot');
+    </script>
+</body>
+</html> 

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Transformer可视化演示</title>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+            background: #181f2a;
+            margin: 0;
+            padding: 0;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #eaf6ff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            background: #232b3a;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px #0006;
+            padding: 36px;
+        }
+        .step {
+            margin: 30px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border-radius: 16px;
+            box-shadow: 0 2px 12px #1de9b633;
+            border: 2px solid #3de0ff44;
+        }
+        .vector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .vector-value {
+            width: 36px;
+            height: 40px;
+            padding: 0 18px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border: 2px solid #3de0ff;
+            margin: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 19px;
+            color: #eaf6ff;
+            border-radius: 8px;
+            transition: background 0.3s, border 0.3s;
+        }
+        .explanation {
+            margin: 10px 0;
+            padding: 10px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border-radius: 8px;
+            color: #7ee7ff;
+        }
+        .matrix-table {
+            border-collapse: collapse;
+            margin: 0 auto;
+        }
+        .matrix-table td {
+            border: 2px solid #3de0ff;
+            padding: 8px 14px;
+            text-align: center;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            color: #eaf6ff;
+            font-size: 1em;
+            border-radius: 6px;
+        }
+        .highlight {
+            background: linear-gradient(135deg, #1de9b6 0%, #2979ff 100%);
+            border-color: #1de9b6 !important;
+            color: #fff !important;
+        }
+        .attention-matrix {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .attention-row {
+            display: flex;
+            gap: 10px;
+        }
+        .attention-cell {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border: 2px solid #3de0ff;
+            color: #eaf6ff;
+            border-radius: 8px;
+        }
+        .input-sequence {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+        .input-token {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #232b3a 0%, #2e3c54 100%);
+            border: 2px solid #3de0ff;
+            color: #eaf6ff;
+            border-radius: 8px;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Transformer可视化演示</h1>
+        <p class="explanation" style="text-align: center; font-size: 1.2em;">
+            以"我 喜欢 猫"为例，展示Transformer的完整计算过程
+        </p>
+
+        <div class="step">
+            <h2>1. 输入序列</h2>
+            <div class="explanation">
+                <p>首先，我们将输入文本转换为词元（token）序列，并添加位置编码。</p>
+            </div>
+            <div class="input-sequence" id="input-sequence">
+                <!-- 输入序列将通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>2. 词嵌入（Word Embedding）</h2>
+            <div class="explanation">
+                <p>将每个词元转换为d_model维度的向量表示。</p>
+            </div>
+            <div id="word-embeddings">
+                <!-- 词嵌入将通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>3. 位置编码（Positional Encoding）</h2>
+            <div class="explanation">
+                <p>为每个位置添加位置信息，使模型能够理解序列中词元的顺序。</p>
+            </div>
+            <div id="positional-encodings">
+                <!-- 位置编码将通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>4. 多头注意力机制（Multi-Head Attention）</h2>
+            <div class="explanation">
+                <p>将输入分成多个头，每个头独立计算注意力权重。</p>
+            </div>
+            <div id="attention-heads">
+                <!-- 注意力头将通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>5. 前馈神经网络（Feed Forward）</h2>
+            <div class="explanation">
+                <p>对每个位置的表示进行非线性变换。</p>
+            </div>
+            <div id="feed-forward">
+                <!-- 前馈网络输出将通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>6. 残差连接和层归一化</h2>
+            <div class="explanation">
+                <p>添加残差连接并应用层归一化，以稳定训练过程。</p>
+            </div>
+            <div id="residual-norm">
+                <!-- 残差连接和归一化结果将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 配置参数
+        const config = {
+            d_model: 4,  // 模型维度
+            n_heads: 2,  // 注意力头数
+            seq_length: 3,  // 序列长度
+            vocab_size: 5,  // 词表大小
+        };
+
+        // 生成随机向量
+        function generateRandomVector(size) {
+            return Array.from({length: size}, () => +(Math.random() * 2 - 1).toFixed(2));
+        }
+
+        // 生成随机矩阵
+        function generateRandomMatrix(rows, cols) {
+            return Array.from({length: rows}, () => 
+                Array.from({length: cols}, () => +(Math.random() * 2 - 1).toFixed(2))
+            );
+        }
+
+        // 显示向量
+        function displayVector(vector, elementId) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = '<div class="vector">';
+            vector.forEach(value => {
+                container.innerHTML += `<div class="vector-value">${value}</div>`;
+            });
+            container.innerHTML += '</div>';
+        }
+
+        // 显示矩阵
+        function displayMatrix(matrix, elementId) {
+            const container = document.getElementById(elementId);
+            let html = '<table class="matrix-table">';
+            matrix.forEach(row => {
+                html += '<tr>';
+                row.forEach(value => {
+                    html += `<td>${value}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</table>';
+            container.innerHTML = html;
+        }
+
+        // 初始化输入序列
+        const inputTokens = ['我', '喜欢', '猫'];
+        const inputSequence = document.getElementById('input-sequence');
+        inputTokens.forEach(token => {
+            const div = document.createElement('div');
+            div.className = 'input-token';
+            div.textContent = token;
+            inputSequence.appendChild(div);
+        });
+
+        // 生成词嵌入
+        const wordEmbeddings = inputTokens.map(() => generateRandomVector(config.d_model));
+        const wordEmbeddingsContainer = document.getElementById('word-embeddings');
+        wordEmbeddings.forEach((embedding, i) => {
+            const div = document.createElement('div');
+            div.innerHTML = `<div style="color: #7ee7ff; margin-bottom: 6px;">${inputTokens[i]}的词嵌入：</div>`;
+            wordEmbeddingsContainer.appendChild(div);
+            displayVector(embedding, div.id = `embedding-${i}`);
+        });
+
+        // 生成位置编码
+        const positionalEncodings = inputTokens.map(() => generateRandomVector(config.d_model));
+        const posEncodingsContainer = document.getElementById('positional-encodings');
+        positionalEncodings.forEach((encoding, i) => {
+            const div = document.createElement('div');
+            div.innerHTML = `<div style="color: #7ee7ff; margin-bottom: 6px;">位置${i+1}的编码：</div>`;
+            posEncodingsContainer.appendChild(div);
+            displayVector(encoding, div.id = `pos-encoding-${i}`);
+        });
+
+        // 生成注意力权重
+        const attentionWeights = generateRandomMatrix(config.seq_length, config.seq_length);
+        const attentionContainer = document.getElementById('attention-heads');
+        for (let h = 0; h < config.n_heads; h++) {
+            const div = document.createElement('div');
+            div.innerHTML = `<div style="color: #7ee7ff; margin-bottom: 6px;">注意力头${h+1}的权重矩阵：</div>`;
+            attentionContainer.appendChild(div);
+            displayMatrix(attentionWeights, div.id = `attention-head-${h}`);
+        }
+
+        // 生成前馈网络输出
+        const feedForwardOutput = inputTokens.map(() => generateRandomVector(config.d_model));
+        const feedForwardContainer = document.getElementById('feed-forward');
+        feedForwardOutput.forEach((output, i) => {
+            const div = document.createElement('div');
+            div.innerHTML = `<div style="color: #7ee7ff; margin-bottom: 6px;">位置${i+1}的前馈输出：</div>`;
+            feedForwardContainer.appendChild(div);
+            displayVector(output, div.id = `ff-output-${i}`);
+        });
+
+        // 生成残差连接和归一化结果
+        const residualNormOutput = inputTokens.map(() => generateRandomVector(config.d_model));
+        const residualNormContainer = document.getElementById('residual-norm');
+        residualNormOutput.forEach((output, i) => {
+            const div = document.createElement('div');
+            div.innerHTML = `<div style="color: #7ee7ff; margin-bottom: 6px;">位置${i+1}的残差连接和归一化结果：</div>`;
+            residualNormContainer.appendChild(div);
+            displayVector(output, div.id = `residual-norm-${i}`);
+        });
+    </script>
+</body>
+</html> 
